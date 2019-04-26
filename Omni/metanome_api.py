@@ -1,8 +1,8 @@
-import JSON
+import json
 import pandas as pd
 
-#Per leggere più strutture JSON presenti nello stesso documento
-def decode_stacked(document, pos=0, decoder=JSONDecoder()):
+#Per leggere piu' strutture JSON presenti nello stesso documento
+def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):
     while True:
         match = NOT_WHITESPACE.search(document, pos)
         if not match:
@@ -50,7 +50,7 @@ def requirements(alg_name):
 
 
 # Passando il path di un ds ottengo le sue info,
-# cioè quello che  deov mettere in settingsper il type:
+# cioe' quello che  deov mettere in settingsper il type:
 # "ConfigurationRequirementRelationalInput"
 def info_dataset(ds_path):
     url = 'http://127.0.0.1:8081/api/file-inputs'

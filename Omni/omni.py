@@ -4,6 +4,8 @@ import json
 import metanome_api
 import copy
 import re
+import sys
+import os
 #Il body della richiesta
 
 dtypes_dict = {'id': int,
@@ -44,7 +46,7 @@ def omni(ds_path, result_name):
     print ds_path
     responses = []
     algs = {
-        "SCDP": alg_id("SCDP"),
+        "SCDP": metanome_api.alg_id("SCDP"),
         "HyFD": alg_id("HyFD"),
         "HyUCC": alg_id("HyUCC"),
         "SPIDER": alg_id("SPIDER")
@@ -85,7 +87,7 @@ def omni(ds_path, result_name):
             "algorithmId": algs[alg],
             "executionIdentifier": result_name + "_" + alg + strftime("%Y-%m-%d_%H%M%S", gmtime()),
             ##
-            # Boh non capisco perché adesso devo mettere lower anche alg
+            # Boh non capisco perche' adesso devo mettere lower anche alg
             ##
             "requirements": requirements_list,
             "cacheResults":False,
@@ -100,10 +102,10 @@ def omni(ds_path, result_name):
 
 
 # Se voglio processare solo alcuni file per ora sposto tutti gli indesiderati nella cartella "limbo"
-# Poi penserò ad un modo più carino.
+# Poi pensero' ad un modo piu' carino.
 def exec_omni(mypath):
     #mypath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
-    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+    onlyfiles = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
     print onlyfiles
     responses_list = []
     for csv in onlyfiles:
@@ -117,7 +119,7 @@ def exec_omni(mypath):
 # Lista di tutti i file nella seguente cartella
 def files_in_dir(mypath_results):
     #mypath = "/home/marco/Scrivania/dep/results/"
-    onlyfiles = [f for f in listdir(mypath_results) if isfile(join(mypath_results, f))]
+    onlyfiles = [f for f in os.listdir(mypath_results) if os.path.isfile(os.path.join(mypath_results, f))]
     return onlyfiles
 
 
