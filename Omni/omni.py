@@ -1,13 +1,16 @@
+#!/home/marco/anaconda2/bin/python
+#-*- coding: utf-8 -*-
+
 import pandas as pd
 import numpy as np
 import json
-import copy
 import re
 import sys
 import os
 import collections
 import time
 import requests
+import pickle
 
 import metanome_api
 import deps_classe
@@ -165,4 +168,6 @@ def handle_deps(mypath, mypath_results):
 if __name__ == "__main__":
     mypath = sys.argv[1]
     mypath_results = sys.argv[2]
-    a, b, c = handle_deps(mypath, mypath_results)
+    stats, ds_names, final_dep_results = handle_deps(mypath, mypath_results)
+    with open("objs.pkl", "w") as f:
+        pickle.dump([stats, ds_names, final_dep_results], f)

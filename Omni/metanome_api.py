@@ -1,3 +1,6 @@
+#!/home/marco/anaconda2/bin/python
+#-*- coding: utf-8 -*-
+
 import json
 import pandas as pd
 import requests

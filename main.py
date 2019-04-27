@@ -1,3 +1,6 @@
+#!/home/marco/anaconda2/bin/python
+#-*- coding: utf-8 -*-
+
 import os, shutil, argparse
 from Omni
 # Parsing delgi argomenti da linea di commando
