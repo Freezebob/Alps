@@ -1,5 +1,10 @@
+#!/home/marco/anaconda2/bin/python
+#-*- coding: utf-8 -*-
+
 import pandas as pd
 import numpy as np
+import re
+import metanome_api
 
 # Classi per le varie dipendenze
 
@@ -111,7 +116,7 @@ def read_stats(file_name):
     with open(file_name, 'r') as myfile:
         data=myfile.read().replace('\n', '')
     ris = pd.DataFrame()
-    for obj in decode_stacked(data):
+    for obj in metanome_api.decode_stacked(data):
         tmp = pd.DataFrame.from_dict(obj["statisticMap"])
         tmp["columnIdentifier"] = obj["columnCombination"]["columnIdentifiers"][0]["columnIdentifier"]
         #print tmp

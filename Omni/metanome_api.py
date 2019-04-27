@@ -1,5 +1,8 @@
 import json
 import pandas as pd
+import requests
+import re
+NOT_WHITESPACE = re.compile(r'[^\s]')
 
 #Per leggere piu' strutture JSON presenti nello stesso documento
 def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):

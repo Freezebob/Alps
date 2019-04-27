@@ -1,11 +1,17 @@
 import pandas as pd
 import numpy as np
 import json
-import metanome_api
 import copy
 import re
 import sys
 import os
+import collections
+import time
+import requests
+
+import metanome_api
+import deps_classe
+
 #Il body della richiesta
 
 dtypes_dict = {'id': int,
@@ -47,9 +53,9 @@ def omni(ds_path, result_name):
     responses = []
     algs = {
         "SCDP": metanome_api.alg_id("SCDP"),
-        "HyFD": alg_id("HyFD"),
-        "HyUCC": alg_id("HyUCC"),
-        "SPIDER": alg_id("SPIDER")
+        "HyFD": metanome_api.alg_id("HyFD"),
+        "HyUCC": metanome_api.alg_id("HyUCC"),
+        "SPIDER": metanome_api.alg_id("SPIDER")
     }
     headers = {
         #"Host": "localhost:8081",
@@ -67,7 +73,7 @@ def omni(ds_path, result_name):
     }
     url = 'http://127.0.0.1:8081/api/algorithm-execution/'
     for alg in ["SCDP", "HyFD", "HyUCC", "SPIDER"]: #
-        requirements_list = requirements(alg)
+        requirements_list = metanome_api.requirements(alg)
         #print "requirements_list"
         #print requirements_list
         for item in requirements_list:
@@ -77,7 +83,7 @@ def omni(ds_path, result_name):
                 #print item
                 #print "INFO_DATASET"
                 #print info_dataset(ds_path)
-                item["settings"] = [info_dataset(ds_path)]
+                item["settings"] = [metanome_api.info_dataset(ds_path)]
                 #print "DOPO"
                 #print item
             else:
@@ -85,7 +91,7 @@ def omni(ds_path, result_name):
                                      "value": item["defaultValues"][0]}]
         body = {
             "algorithmId": algs[alg],
-            "executionIdentifier": result_name + "_" + alg + strftime("%Y-%m-%d_%H%M%S", gmtime()),
+            "executionIdentifier": result_name + "_" + alg + time.strftime("%Y-%m-%d_%H%M%S", time.gmtime()),
             ##
             # Boh non capisco perche' adesso devo mettere lower anche alg
             ##
@@ -128,16 +134,17 @@ def files_in_dir(mypath_results):
 #   stats: contiene i metadati su singola colonna
 #   ds_names: contiene i nomi dei dataset analizzati
 def read_all(mypath_results):
-    final_dep_results = defaultdict(dict)
+    final_dep_results = collections.defaultdict(dict)
     stats = {}
     attr_read = False
     ds_names = []
+    onlyfiles = files_in_dir(mypath_results)
     for f in onlyfiles:
         #print f.split("_")[0]
         ds_name = f.split("_")[0] # invece di usare per es. orcid_SPIDER_inds,uso solo orcid
         ds_name = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict
         if "stats" not in f:
-            attributes, dependencies = read_dep(mypath_results + f)
+            attributes, dependencies = deps_classe.read_dep(mypath_results + f)
             if ds_name not in ds_names:
                 ds_names.append(ds_name)
             #print f.split("_")
@@ -146,14 +153,14 @@ def read_all(mypath_results):
         else:
             #stats[f.split("_")[0]] = read_stats(mypath + f)
             #print mypath + f
-            stats[ds_name] = read_stats(mypath_results + f)
+            stats[ds_name] = deps_classe.read_stats(mypath_results + f)
     return (stats, ds_names, final_dep_results)
 
 
 def handle_deps(mypath, mypath_results):
     responses_list = exec_omni(mypath)
-    onlyfiles = files_in_dir(mypath_results)
     stats, ds_names, final_dep_results = read_all(mypath_results)
+    return stats, ds_names, final_dep_results
 
 if __name__ == "__main__":
     mypath = sys.argv[1]
