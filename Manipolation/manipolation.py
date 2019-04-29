@@ -1,14 +1,93 @@
 #!/home/marco/anaconda2/bin/python
 #-*- coding: utf-8 -*-
 import copy as cp
-from tkinter import *
-from tkinter import ttk
 import pickle
 import collections
 import sys, os
-sys.path.append('/home/marco/github/Alps')
-from Omni.deps_classe import *
+import tkinter
+import pymongo as pm
+import pprint
+import re
+import pandas as pd
+import numpy as np
+import multiprocessing as mp
+import time
+import operator
+import ast
 
+import gui
+sys.path.append('/home/marco/github/Alps')
+#from Omni.deps_classe import *
+import Omni.deps_classe
+
+attributes = {'1': 'id',
+ '10': 'country',
+ '11': 'countryCode',
+ '12': 'postcode',
+ '13': 'urbanUnit',
+ '14': 'urbanUnitCode',
+ '15': 'lat',
+ '16': 'lon',
+ '17': 'revenueRange',
+ '18': 'privateFinanceDate',
+ '19': 'employees',
+ '2': 'acronyms',
+ '20': 'typeCategoryCode',
+ '21': 'typeLabel',
+ '22': 'typeKind',
+ '23': 'isPublic',
+ '24': 'leaders',
+ '25': 'staff',
+ '26': 'links',
+ '27': 'privateOrgTypeId',
+ '28': 'privateOrgTypeLabel',
+ '29': 'activities',
+ '3': 'alias',
+ '30': 'relations',
+ '31': 'badges',
+ '32': 'children',
+ '33': 'identifiers',
+ '4': 'label',
+ '5': 'creationYear',
+ '6': 'commercialLabel',
+ '7': 'address',
+ '8': 'city',
+ '9': 'citycode'}
+
+
+dtypes_dict = {'id': int,
+ 'country': str,
+ 'countryCode': str,
+ 'postcode': str,
+ 'urbanUnit': str,
+ 'urbanUnitCode': str,
+ 'lat': float,
+ 'lon': float,
+ 'revenueRange': str,
+ 'privateFinanceDate': str,
+ 'employees': str,
+ 'acronyms': str,
+ 'typeCategoryCode': str,
+ 'typeLabel': str,
+ 'typeKind': str,
+ 'isPublic': str,
+ 'leaders': str,
+ 'staff': str,
+ 'links': str,
+ 'privateOrgTypeId': float,
+ 'privateOrgTypeLabel': str,
+ 'activities': str,
+ 'alias': str,
+ 'relations': str,
+ 'badges': str,
+ 'children': str,
+ 'identifiers': str,
+ 'label': str,
+ 'creationYear': str,
+ 'commercialLabel': str,
+ 'address': str,
+ 'city': str,
+ 'citycode': str}
 # Le variabili stats, ds_names, final_dep_results calcolate nel package Omni mi servono anche qui. Per non dover rieseguire tutto le tengo salvate con pickle
 def load_results():
     stats = {}
@@ -20,37 +99,38 @@ def load_results():
         # print ds_names
         return stats, ds_names, final_dep_results
 
-# Per l'interfaccia grafica
-def get_selection(ds_names, ds_list_box):
-    # print "ciao"
-    selected_options = [ds_names[int(item)] for item in  ds_list_box.curselection()]
-    return selected_options
+# # Per l'interfaccia grafica
+# def get_selection(ds_names, ds_list_box):
+#     # print "ciao"
+#     selected_options = [ds_names[int(item)] for item in  ds_list_box.curselection()]
+#     return selected_options
+#
+#
+# # Interfaccia grafica di prova. Da aggiustare le dimensioni
+#
+# def ds_list(ds_names):
+#     main = Tk()
+#     main.title('Test GUI')
+#     main.geometry('400x400')
+#
+#     nb = ttk.Notebook(main)
+#     nb.grid(row=1, column=0, columnspan=50, rowspan=49, sticky='NESW')
+#
+#     page1 = ttk.Frame(nb)
+#     nb.add(page1, text='Dataset names')
+#
+#     ds_list_box = Listbox(page1)
+#     ds_list_box.configure(selectmode=MULTIPLE, width=9, height=5)
+#     ds_list_box.grid(row=0, column=0)
+#
+#     btnGet = Button(page1,text="Get Selection",command= lambda: get_selection(ds_names, ds_list_box))
+#     btnGet.grid()
+#
+#     for name in ds_names:
+#         ds_list_box.insert(END, name)
+#
+#     main.mainloop()
 
-
-# Interfaccia grafica di prova. Da aggiustare le dimensioni
-
-def ds_list(ds_names):
-    main = Tk()
-    main.title('Test GUI')
-    main.geometry('400x400')
-
-    nb = ttk.Notebook(main)
-    nb.grid(row=1, column=0, columnspan=50, rowspan=49, sticky='NESW')
-
-    page1 = ttk.Frame(nb)
-    nb.add(page1, text='Dataset names')
-
-    ds_list_box = Listbox(page1)
-    ds_list_box.configure(selectmode=MULTIPLE, width=9, height=5)
-    ds_list_box.grid(row=0, column=0)
-
-    btnGet = Button(page1,text="Get Selection",command= lambda: get_selection(ds_names, ds_list_box))
-    btnGet.grid()
-
-    for name in ds_names:
-        ds_list_box.insert(END, name)
-
-    main.mainloop()
 
 # Per tutte le dipendenze comuni
 # TODO: per ora funziona solo con le FDs. FATTO anche per INDs e UCCs
@@ -159,7 +239,7 @@ def deps_screm(final_dep_results, ds_names):
 def csvs(csvpath, ds_names):
     opened_csvs = {}
     #csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
-    onlyfiles = [f for f in listdir(csvpath) if isfile(join(csvpath, f))]
+    onlyfiles = [f for f in os.listdir(csvpath) if os.path.isfile(os.path.join(csvpath, f))]
     for f in onlyfiles:
         only_name = re.sub(r'.*_', '', f).split('.')[0]
         only_name = re.sub('[(){}<>]', '', only_name)
@@ -185,7 +265,7 @@ def csvs(csvpath, ds_names):
 
 
 # Dipendenze esclusive per ogni dataset selezionato
-def exclusive_deps(selected_options, final_dep_results_copy):
+def exclusive_d(selected_options, final_dep_results_copy):
     exclusive_deps = collections.defaultdict(dict)
     for ds in selected_options:
         tmp = []
@@ -217,7 +297,7 @@ def bing_bing_bong_new(a_list, ds):
     return result
 
 
-def process_function(lim1, lim2, lim1_d, lim2_d):
+def process_function(d_p, selected_options, exclusive_deps, stats):
 #     scre_dict = rec_dd()
     #deps_screm_nuovo_process = rec_dd()
     client_p = pm.MongoClient()
@@ -226,18 +306,14 @@ def process_function(lim1, lim2, lim1_d, lim2_d):
     seg_list = []
     for ds1 in selected_options:
             for ds2 in selected_options:
-                if ds1 != ds2:
+                if (ds1 != ds2 and d_p[ds2]):
                     tmp = []
-                    if ds2 == "alpsv20dedup":
-                        l1 = lim1_d
-                        l2 = lim2_d
-                    else:
-                        l1 = lim1
-                        l2 = lim2
+                    l1 = d_p[ds2][0]
+                    l2 = d_p[ds2][1]
                     for i in exclusive_deps[ds2]["fds"][l1:l2]:
                         #print "controllo {} di {} su {}".format(i, ds2, ds1)
                         if stats[ds1]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
-                            new_i = deepcopy(i)
+                            new_i = cp.deepcopy(i)
                             for x in i.lhs:
                                 #print "esamino {}".format(x)
                                 #print stats[ds1]["Percentage of Nulls"][attributes[x]]
@@ -297,28 +373,22 @@ def create_slides(n, n_slides):
     return ris
 
 
-r = create_slides(len(exclusive_deps["alpsv20dedup"]["fds"]), (len(exclusive_deps["alpsv20dedup"]["fds"]) / 4) + 1)
-slides_d = [[i,j] for i, j in zip(r[:-1], r[1:])]
+def split(a, n):
+    a = [i for i in xrange(a)]
+    k, m = divmod(len(a), n)
+    l = list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in xrange(n))
+    for i in xrange(len(l)):
+        if l[i]:
+            l[i] = [l[i][0], l[i][len(l[i])-1] +1]
+    return l
 
 
-r = create_slides(len(exclusive_deps["alpsv20"]["fds"]), (len(exclusive_deps["alpsv20"]["fds"]) / 4) + 1)
-slides = [[i,j] for i, j in zip(r[:-1], r[1:])]
-
-
-processes = []
-# for i in xrange(len(slides)):
-for i in xrange(len(slides)):
-    processes.append(mp.Process(target=thread_function, args=(slides[i][0], slides[i][1], slides_d[i][0], slides_d[i][1])))
-
-
-start = time.time()
-for x in processes:
-    x.start()
-# results = [output.get() for p in xrange(len(slides))]
-for x in processes:
-    x.join()
-end = time.time()
-print(end-start)
+def attributes_names(x):
+    x = ast.literal_eval(x)
+    names = []
+    for i in x:
+        names.append(attributes[i])
+    return names
 
 
 def dict_merge(dct, merge_dct):
@@ -338,16 +408,68 @@ def dict_merge(dct, merge_dct):
             dct[k] = merge_dct[k]
 
 
-for col in xrange(len(results[0])):
-    tot = rec_dd()
-    for row in results:
-        dict_merge(tot, row[col])
-    fds_collection.insert_one(tot)
-
-
 if __name__ == "__main__":
     stats, ds_names, final_dep_results = load_results()
     final_dep_results_copy = deps_screm(final_dep_results, ds_names)
     csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
     opened_csvs = csvs(csvpath, ds_names)
-    ds_list(ds_names)
+    root = tkinter.Tk()
+    menu = gui.my_gui(root, ds_names)
+    root.mainloop()
+    selected_options = menu.selected_options
+
+    inter_fds = intersection_some_ign("fds", final_dep_results_copy, selected_options)
+    exclusive_deps = exclusive_d(selected_options, final_dep_results_copy)
+
+    ds_slides = {}
+    for ds in selected_options:
+        # print ds
+        if exclusive_deps[ds]:
+            n = len(exclusive_deps[ds]["fds"])
+        else:
+            n = 0
+        ds_slides[ds] = split(n, 4)
+
+    processes = []
+    dict_process = {}
+    l_d_p = [] #list_dict_process
+    # for i in xrange(len(slides)):
+    for i in xrange(4):
+        for ds in ds_slides.keys():
+            dict_process[ds] = ds_slides[ds][i]
+        l_d_p.append(cp.deepcopy(dict_process))
+        #print l_d_p[i]
+    for i in l_d_p:
+        print i
+        processes.append(mp.Process(target=process_function, args=(i, selected_options, exclusive_deps, stats)))
+
+    start = time.time()
+    for x in processes:
+        x.start()
+    # results = [output.get() for p in xrange(len(slides))]
+    for x in processes:
+        x.join()
+    end = time.time()
+    print(end-start)
+
+    client = pm.MongoClient()
+    db = client["Deps_db"]
+    fds_collection = db["FDS"]
+    mongo_dict = fds_collection.find_one({"source_ds": "cercauniversita"})
+    sum_dict = collections.defaultdict(int)
+    for key in mongo_dict["dependencies"].keys():
+        somma = 0
+    #     print key
+        if mongo_dict["dependencies"][key]:
+            for i in mongo_dict["dependencies"][key][1]:
+                somma += (sum(i[1]) - max(i[1]))
+            sum_dict[key] = somma
+    sorted_x = sorted(sum_dict.items(), key=operator.itemgetter(1))
+
+    # for key in deps_screm_nuovo["alpsv20dedup"]["alpsv20"]["fds"].keys():
+    for key in sorted_x:
+        print "Dependency: {}".format(key[0])
+        print "Names: {}\n".format(attributes_names(key[0]))
+        for i, j in zip(mongo_dict["dependencies"][key[0]][0], mongo_dict["dependencies"][key[0]][1]):
+            print "\033[1m Key \033[0m: {}\n\033[1m Vals \033[0m: {}\n".format(i, j)
+        print "----------------------"

@@ -1,3 +1,5 @@
+# Non utilizzata, ci ho solo preso spunto per creare la classe
+
 from tkinter import *
 from tkinter import ttk
 
