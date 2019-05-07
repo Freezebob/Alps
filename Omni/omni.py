@@ -12,6 +12,9 @@ import time
 import requests
 import pickle
 
+from sqlalchemy.ext.declarative import declarative_base
+
+
 import metanome_api
 import deps_classe
 
@@ -137,6 +140,9 @@ def files_in_dir(mypath_results):
 #   stats: contiene i metadati su singola colonna
 #   ds_names: contiene i nomi dei dataset analizzati
 def read_all(mypath_results):
+    engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
+    engine.execute("USE Alps")
+
     final_dep_results = collections.defaultdict(dict)
     stats = {}
     attr_read = False
@@ -148,6 +154,20 @@ def read_all(mypath_results):
         ds_name = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict
         if "stats" not in f:
             attributes, dependencies = deps_classe.read_dep(mypath_results + f)
+            for dep in dependencies:
+                values = str(dep.lhs) + " - " + str(dep.rhs)
+                engine.execute("""
+                                    BEGIN
+                                       IF NOT EXISTS (SELECT * FROM Alps.Hand_sides
+                                                       WHERE string = {}
+                                       BEGIN
+                                           INSERT INTO Alps.Hand_sides (`string`)
+                                           VALUES ({})
+                                       END
+                                    END
+                               """.format(values, values))
+
+                for side in
             if ds_name not in ds_names:
                 ds_names.append(ds_name)
             #print f.split("_")
