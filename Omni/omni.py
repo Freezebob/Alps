@@ -155,6 +155,7 @@ def hs_check(hs, table, conn):
 #   stats: contiene i metadati su singola colonna
 #   ds_names: contiene i nomi dei dataset analizzati
 def read_all(mypath_results):
+    count_dict = collections.defaultdict(int)
     engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
     conn = engine.connect()
     meta = MetaData()
@@ -193,22 +194,37 @@ def read_all(mypath_results):
             #     ins = Dependencies.insert().values(type=type_d, idLHS=idlhs, idRHS=idrhs)
             #     conn.execute(ins)
             values = ""
+
+            # PROBLEMA: dato che in una singola insert vado a mettere molti valori non posso sapere quelle che flliranno perché già presenti
+            # quindi i loro id andranno "sprecati", generando in certi casi dei buchi tra un id e il successivo.
+            # Se eseguissi un insert alla volta potrei "riciclare" gliid non usati, ma così non so come fare.
+            # Ho comunue a disposizione gli id che mi servono per inserire una tupla nella tabella Dependencies.
+            # E invece no, questo discorso vale solo per le tuple non presenti. Per quelle già memorizzate devo comunque fare un select
             for dep in dependencies:
                 if type(dep) is deps_classe.FD:
+                    count_dict["lhs"] = count_dict["rhs"] + 1 # rhs al primo ciclo varrà 0
+                    count_dict["rhs"] = count_dict["lhs"] + 1
                     # print "FD"
                     # print "Values prima: {}".format(values)
                     if dep.lhs:
-                        values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+                        el = str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+                        el = "(" + str(count_dict["lhs"]) + ", " + el[1:]
+                        # values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+                        values = el
                     else:
-                        values += "('NULL'), "
-                    values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+                        values += "(" + str(count_dict["lhs"]) + ", " + "'NULL'), "
+
+                    el = str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+                    el = "(" + str(count_dict["rhs"]) + ", " + el[1:]
+                    # values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+                    values += el
                     print "Values dopo {}".format(values)
             values = values[:-2]
             # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
             # print f
             # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
             if values:
-                engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+                engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
 
             if ds_name not in ds_names:
                 ds_names.append(ds_name)
