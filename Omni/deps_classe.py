@@ -108,6 +108,10 @@ def read_dep(file_name): # Il caso stats è a parte
             both = line.rstrip("\n").split(symbol)
             lhs = both[0].split(",") # Lo split mi crea una lista. Il problema è che l'ordine dei suoi elementi così conta, ma in verità un lhs [1,2] è uguale ad un [2,1]
             rhs = both[1].split(",")
+
+            # Potrei gestire una lista di int e non di string, ma ormai ho strutturato tutta l'app ini questo modo e non avrei comuqnue particolari vantaggi
+            # lhs = [int(i if i != '' else 0) for i in both[0].split(",")]
+            # rhs = [int(i if i != '' else 0) for i in both[1].split(",")]
             deps.append(create_dep(lhs, rhs, dep_type))
     return columns, deps
 
