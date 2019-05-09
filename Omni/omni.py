@@ -12,8 +12,10 @@ import time
 import requests
 import pickle
 
+import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
-
+from sqlalchemy.sql import select
+from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 
 import metanome_api
 import deps_classe
@@ -134,6 +136,19 @@ def files_in_dir(mypath_results):
     onlyfiles = [f for f in os.listdir(mypath_results) if os.path.isfile(os.path.join(mypath_results, f))]
     return onlyfiles
 
+# Controllo se posso inserire l'hs passato
+def hs_check(hs, table, conn):
+    sel = select([table]).where(table.c.string == str(hs))
+    ris = conn.execute(sel)
+    if not ris.rowcount:
+        ins = table.insert().values(string=str(hs))
+        conn.execute(ins)
+        return "Inserted"
+    else:
+        print "già dentro"
+        for i in ris:
+            return i["idHand_sides"]
+
 
 # Leggo tutti i risultati presenti in mypath e li organizzo nel seguente modo
 #   final_dep_results: contiene le dipendenze calcolate
@@ -141,7 +156,12 @@ def files_in_dir(mypath_results):
 #   ds_names: contiene i nomi dei dataset analizzati
 def read_all(mypath_results):
     engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
-    engine.execute("USE Alps")
+    conn = engine.connect()
+    meta = MetaData()
+    Hand_sides = Table('Hand_sides', meta, autoload=True, autoload_with=engine)
+    Dependencies = Table('Dependencies', meta, autoload=True, autoload_with=engine)
+    Datasets = Table('Datasets', meta, autoload=True, autoload_with=engine)
+
 
     final_dep_results = collections.defaultdict(dict)
     stats = {}
@@ -154,20 +174,42 @@ def read_all(mypath_results):
         ds_name = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict
         if "stats" not in f:
             attributes, dependencies = deps_classe.read_dep(mypath_results + f)
-            for dep in dependencies:
-                values = str(dep.lhs) + " - " + str(dep.rhs)
-                engine.execute("""
-                                    BEGIN
-                                       IF NOT EXISTS (SELECT * FROM Alps.Hand_sides
-                                                       WHERE string = {}
-                                       BEGIN
-                                           INSERT INTO Alps.Hand_sides (`string`)
-                                           VALUES ({})
-                                       END
-                                    END
-                               """.format(values, values))
 
-                for side in
+            # Problema: i singoli insert sono LENTI. Provo ad eseguirne tanti assieme
+            # for dep in dependencies:
+            #     grbg = hs_check(dep.lhs, Hand_sides, conn) # Controllo se è già in Hand_sides
+            #     grbg = hs_check(dep.rhs, Hand_sides, conn) # Controllo se è già in Hand_sides
+            #
+            #     idlhs = hs_check(dep.lhs, Hand_sides, conn) # Uso differente rispetto a prima, lo uso per recuperare l'id dell'hs
+            #     idrhs = hs_check(dep.rhs, Hand_sides, conn) # Uso differente rispetto a prima, lo uso per recuperare l'id dell'hs
+            #     if type(dep) is deps_classe.FD:
+            #         type_d = "FD"
+            #     elif type(dep) is deps_classe.IND:
+            #         type_d = "IND"
+            #     elif type(dep) is deps_classe.UCC:
+            #         type_d = "UCC"
+            #     elif type(dep) is deps_classe.ORD:
+            #         type_d = "ORD"
+            #     ins = Dependencies.insert().values(type=type_d, idLHS=idlhs, idRHS=idrhs)
+            #     conn.execute(ins)
+            values = ""
+            for dep in dependencies:
+                if type(dep) is deps_classe.FD:
+                    # print "FD"
+                    # print "Values prima: {}".format(values)
+                    if dep.lhs:
+                        values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+                    else:
+                        values += "('NULL'), "
+                    values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+                    print "Values dopo {}".format(values)
+            values = values[:-2]
+            # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
+            # print f
+            # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
+            if values:
+                engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+
             if ds_name not in ds_names:
                 ds_names.append(ds_name)
             #print f.split("_")
@@ -181,7 +223,7 @@ def read_all(mypath_results):
 
 
 def handle_deps(mypath, mypath_results):
-    responses_list = exec_omni(mypath)
+    # responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
     stats, ds_names, final_dep_results = read_all(mypath_results)
     return stats, ds_names, final_dep_results
 
