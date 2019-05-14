@@ -123,10 +123,14 @@ def exec_omni(mypath):
     print onlyfiles
     responses_list = []
     for csv in onlyfiles:
-        name = re.sub(r'.*_', '', csv)
-        name = name.split(".")[0].lower()
+        # Questa pulizia della stringa la facevo per usare name come chiave di un dict
+        # Ora non mi serve, anzi mim crea del casino perché lo stesso dataset è riferito con nomi diversi
+        # name = re.sub(r'.*_', '', csv)
+        # name = name.split(".")[0].lower()
         #print mypath + csv
-        responses_list.append(omni(mypath + csv, name))
+        #name = csv.split(".")[0]
+        # responses_list.append(omni(mypath + csv, name))
+        responses_list.append(omni(mypath + csv, csv))
     return responses_list
 
 
@@ -154,7 +158,7 @@ def hs_check(hs, table, conn):
 #   final_dep_results: contiene le dipendenze calcolate
 #   stats: contiene i metadati su singola colonna
 #   ds_names: contiene i nomi dei dataset analizzati
-def read_all(mypath_results):
+def read_all(mypath, mypath_results):
     count_dict = collections.defaultdict(int)
     engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
     conn = engine.connect()
@@ -163,6 +167,22 @@ def read_all(mypath_results):
     Dependencies = Table('Dependencies', meta, autoload=True, autoload_with=engine)
     Datasets = Table('Datasets', meta, autoload=True, autoload_with=engine)
 
+    # Inserisco i dataset. Per ora è fatto con l'ORM, poi lo ottimizzerò direttamente inn SQL
+    # Dovrei già avercea nel notebook communque
+
+    # COMMENTO MOMENTANEO
+    # onlyfiles = files_in_dir(mypath)
+    # engine.execute("USE Alps")
+    # for ds in onlyfiles:
+    #     file_name = mypath + ds
+    #     print file_name
+    #     df = pd.read_csv(file_name)
+    #     df.to_sql(ds, con=engine, if_exists="replace", dtype={'children': sqlalchemy.dialects.mysql.MEDIUMTEXT}, index=False)
+    #     #values = '{}, "{}", {}, {}'.format(i, ds, "NULL", "NULL")
+    #     values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
+    #     engine.execute("INSERT IGNORE INTO Alps.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
+    #     engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
+    # # df.to_sql('users', con=engine)
 
     final_dep_results = collections.defaultdict(dict)
     stats = {}
@@ -171,8 +191,9 @@ def read_all(mypath_results):
     onlyfiles = files_in_dir(mypath_results)
     for f in onlyfiles:
         #print f.split("_")[0]
-        ds_name = f.split("_")[0] # invece di usare per es. orcid_SPIDER_inds,uso solo orcid
-        ds_name = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict
+        #ds_name = f.split("_")[0] # invece di usare per es. orcid_SPIDER_inds,uso solo orcid
+        ds_name = '_'.join(f.split("_")[0:2]) # ora i nomi non sono più orcid_SPIDER, ma organizations_orcid_SPIDER, quindi tagliare sul primo '_' non funziona più
+        ds_name_dict = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict  # Ho aggiunto _dict perché lo uso solo per riemmpire il dizionario, che non userò più a breve. Lo tengo comunque per non inncasinare  il codice
         if "stats" not in f:
             print f
             attributes, dependencies = deps_classe.read_dep(mypath_results + f)
@@ -196,42 +217,71 @@ def read_all(mypath_results):
             #     conn.execute(ins)
 
             # FUNZIONA ed è quello che uso. L'ho commentato solo perché voglio testare la seconda parte sulla tabella Dependencies senza rieseguire questo
+            # values = ""
+            # for dep in dependencies:
+            #     if type(dep) is deps_classe.FD:
+            #         # print "FD"
+            #         # print "Values prima: {}".format(values)
+            #         if dep.lhs:
+            #             values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+            #         else:
+            #             values += "('NULL'), "
+            #         values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+            #         print "Values dopo {}".format(values)
+            # values = values[:-2]
+            # if values:
+            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+
+
+            # Commento momentaneo
             values = ""
             for dep in dependencies:
-                if type(dep) is deps_classe.FD:
-                    # print "FD"
-                    # print "Values prima: {}".format(values)
-                    if dep.lhs:
-                        values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
-                    else:
-                        values += "('NULL'), "
+                if dep.lhs:
+                    values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+                else:
+                    values += "('NULL'), "
+                if dep.rhs:
                     values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
-                    print "Values dopo {}".format(values)
+                else:
+                    values += "('NULL'), "
+                print "Values dopo {}".format(values)
             values = values[:-2]
-                # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
-                # print f
-                # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
             if values:
                 engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
 
-
-
             # Devo ripetere il ciclo dep purtroppo. Vediamo più avanti se c'è un'alternativa
-            selects = ""
+            selects_dependencies = ""
+            selects_datasets = ""
             for dep in dependencies:
                 if type(dep) is deps_classe.FD:
-                    if dep.lhs:
-                        tmp_lhs = str(dep.lhs).replace('[', '').replace(']', '')
-                    else:
-                        tmp_lhs = "NULL"
+                    dep_type = "FD"
+                elif type(dep) is deps_classe.IND:
+                    dep_type = "IND"
+                elif type(dep) is deps_classe.UCC:
+                    dep_type = "UCC"
+
+                if dep.lhs:
+                    tmp_lhs = str(dep.lhs).replace('[', '').replace(']', '')
+                else:
+                    tmp_lhs = "NULL"
+                if dep.rhs:
                     tmp_rhs = str(dep.rhs).replace('[', '').replace(']', '')
-                    selects += '("FD", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), '.format(tmp_lhs, tmp_rhs)
-                    print "Selects dopo: {}".format(selects)
-            selects = selects[:-2]
-            print "\n\n\n\n"
-            print "INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects)
-            if selects:
-                engine.execute("INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects))
+                else:
+                    tmp_rhs = "NULL"
+                selects_dependencies += '("{}", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), '.format(dep_type, tmp_lhs, tmp_rhs)
+                selects_datasets += '((SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"), (SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}" AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}") AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))), '.format(ds_name, dep_type, tmp_lhs, tmp_rhs)
+                # print "Selects_dependencies dopo: {}".format(selects_dependencies)
+                # print "\n\n"
+                # print "Selects_datasets dopo {}".format(selects_datasets)
+            selects_dependencies = selects_dependencies[:-2]
+            selects_datasets = selects_datasets[:-2]
+            print "Selects_datasets dopo {}".format(selects_datasets)
+            # print "\n\n\n\n"
+            # print "INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies)
+            if selects_dependencies:
+                engine.execute("INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies))
+            if selects_datasets:
+                engine.execute("INSERT IGNORE Alps.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
 	        # SELECT "FD", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'10'"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'11'");
 
 
@@ -268,21 +318,21 @@ def read_all(mypath_results):
             # if values:
             #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
 
-            if ds_name not in ds_names:
-                ds_names.append(ds_name)
+            if ds_name_dict not in ds_names:
+                ds_names.append(ds_name_dict)
             #print f.split("_")
             dep_type = f.split("_")[-1] # idem per il tipo di dipendenza
-            final_dep_results[ds_name][dep_type] =  dependencies
+            final_dep_results[ds_name_dict][dep_type] =  dependencies
         else:
             #stats[f.split("_")[0]] = read_stats(mypath + f)
             #print mypath + f
-            stats[ds_name] = deps_classe.read_stats(mypath_results + f)
+            stats[ds_name_dict] = deps_classe.read_stats(mypath_results + f)
     return (stats, ds_names, final_dep_results)
 
 
 def handle_deps(mypath, mypath_results):
     # responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
-    stats, ds_names, final_dep_results = read_all(mypath_results)
+    stats, ds_names, final_dep_results = read_all(mypath, mypath_results)
     return stats, ds_names, final_dep_results
 
 if __name__ == "__main__":

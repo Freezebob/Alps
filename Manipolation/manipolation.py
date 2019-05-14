@@ -15,6 +15,12 @@ import time
 import operator
 import ast
 
+import sqlalchemy
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import select
+from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
+
+
 import gui
 sys.path.append('/home/marco/github/Alps')
 #from Omni.deps_classe import *
@@ -178,6 +184,7 @@ def intersection_all_ign(dep_type, dep_results):
     return dep_intersection
 
 
+intersection_some_ign("fds", final_dep_results_copy, selected_options)
 def intersection_some_ign(dep_type, dep_results, datasets):
     dep_intersection = []
     first = True
@@ -228,9 +235,11 @@ def deps_screm(final_dep_results, ds_names):
                 final_dep_results_copy[name]["fds"].remove(i)  # Il remove creava dei problemi col for i, scombussolando l'ordine
                 #print "-------"
             for j in final_dep_results[name]["uccs"]:
-                if set(i.lhs) == set(j.comb) or set(i.lhs) >= set(j.comb):   #Trovo lo stesso caso mille volte ['1'] e ['1'], ['1'] e ['1'] eccc
+                # Ho cambiato la classe UCC
+                # if set(i.lhs) == set(j.comb) or set(i.lhs) >= set(j.comb):   #Trovo lo stesso caso mille volte ['1'] e ['1'], ['1'] e ['1'] eccc
                     #print "lhs: {}, ucc: {}".format(i.lhs, j.comb)           #Penserò ad una soluzione
                     #print "-------"
+                if set(i.lhs) == set(j.lhs) or set(i.lhs) >= set(j.lhs):
                     final_dep_results_copy[name]["fds"].remove(i)
     return final_dep_results_copy
 
@@ -282,8 +291,10 @@ def exclusive_d(selected_options, final_dep_results_copy):
 
 
 # Il mio groupby
-def bing_bing_bong_new(a_list, ds):
+def bing_bing_bong_new(a_list, ds, opened_csvs):
+    print "Biiiiing"
 #     start = time.time()
+    asd = "ciao"
     dict_df = opened_csvs[ds][[attributes[i] for i in a_list]].to_dict("split")
     dict_df_data = dict_df["data"]
 
@@ -297,7 +308,7 @@ def bing_bing_bong_new(a_list, ds):
     return result
 
 
-def process_function(d_p, selected_options, exclusive_deps, stats):
+def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
 #     scre_dict = rec_dd()
     #deps_screm_nuovo_process = rec_dd()
     client_p = pm.MongoClient()
@@ -347,7 +358,7 @@ def process_function(d_p, selected_options, exclusive_deps, stats):
                         if len(a_list) > 1:
                             #tmp_dict[str(a_list)] = bing_bing_bong(a_list, ds1)
                             #deps_screm[ds1][ds2]["fds"] = tmp_dict
-                            result = bing_bing_bong_new(a_list, ds1)
+                            result = bing_bing_bong_new(a_list, ds1,opened_csvs)
                             if result:
                                 a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
 #                                 deps_screm_nuovo_process[ds1][ds2]["fds"][str(a_list)] = np.array([np.array(result.keys()), a])
@@ -409,8 +420,20 @@ def dict_merge(dct, merge_dct):
 
 
 if __name__ == "__main__":
+    # DEVO sostituire questa la lettura del file pickle con delle letture dal database creato
     stats, ds_names, final_dep_results = load_results()
-    final_dep_results_copy = deps_screm(final_dep_results, ds_names)
+
+    # engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
+    # conn = engine.connect()
+    # ris = engine.execute("SELECT name FROM Alps.Datasets")
+    # ds_names = []
+    # for i in ris:
+    #     ds_names.append(i[0]) # Visto che ogni elemento di ris è una tuplla con dim > 1 anche se contiene un solo elemento
+
+    # Non avendo più problemi di memoria provo a non fare nessuna scrematura
+    # final_dep_results_copy = deps_screm(final_dep_results, ds_names)
+
+    asd = "aaaaaaaaaaa"
     csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
     opened_csvs = csvs(csvpath, ds_names)
     root = tkinter.Tk()
@@ -441,7 +464,7 @@ if __name__ == "__main__":
         #print l_d_p[i]
     for i in l_d_p:
         print i
-        processes.append(mp.Process(target=process_function, args=(i, selected_options, exclusive_deps, stats)))
+        processes.append(mp.Process(target=process_function, args=(i, selected_options, exclusive_deps, stats, opened_csvs)))
 
     start = time.time()
     for x in processes:
@@ -473,3 +496,4 @@ if __name__ == "__main__":
         for i, j in zip(mongo_dict["dependencies"][key[0]][0], mongo_dict["dependencies"][key[0]][1]):
             print "\033[1m Key \033[0m: {}\n\033[1m Vals \033[0m: {}\n".format(i, j)
         print "----------------------"
+    print asd

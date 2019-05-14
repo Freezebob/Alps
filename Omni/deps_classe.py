@@ -9,7 +9,7 @@ import metanome_api
 # Classi per le varie dipendenze
 
 class DEP(object):
-    def __init__(self, lhs, rhs):
+    def __init__(self, lhs, rhs=[]):
         if lhs == ['']:
             lhs = []
         self.lhs = lhs
@@ -62,17 +62,21 @@ class ORD(DEP):
     def __str__(self):
         return str(self.lhs) + " ~> " + str(self.rhs) + str(self.order_type) + str(self.comp)
 
-class UCC(object): # UCC ha un solo attributo, quindi non lo faccio d erivare da DEP
-    def __init__(self, comb):
-        self.comb = comb
-    def __hash__(self):
-        return hash(tuple(self.comb))
-    def __eq__(self, other):
-        return set(self.comb) == set(other.comb)
-    def __ne__(self, other):
-        return not self.__eq__(other)
+class UCC(DEP):
     def __str__(self):
-        return str(self.comb)
+        return str(self.lhs)
+
+# class UCC(object): # UCC ha un solo attributo, quindi non lo faccio derivare da DEP
+#     def __init__(self, comb):
+#         self.comb = comb
+#     def __hash__(self):
+#         return hash(tuple(self.comb))
+#     def __eq__(self, other):
+#         return set(self.comb) == set(other.comb)
+#     def __ne__(self, other):
+#         return not self.__eq__(other)
+#     def __str__(self):
+#         return str(self.comb)
 
 
 # Pensiero di qualche funzione per rendere il codice più elegante, IN LAVORAZIONE
