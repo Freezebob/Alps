@@ -57,7 +57,7 @@ dtypes_dict = {'id': int,
  'citycode': str}
 
 def omni(ds_path, result_name):
-    print ds_path
+    print "ds_path usato dall'omni: {}".format(ds_path)
     responses = []
     algs = {
         "SCDP": metanome_api.alg_id("SCDP"),
@@ -120,7 +120,7 @@ def omni(ds_path, result_name):
 def exec_omni(mypath):
     #mypath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
     onlyfiles = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
-    print onlyfiles
+    print "dataset che vado ad analizzare: {}".format(onlyfiles)
     responses_list = []
     for csv in onlyfiles:
         # Questa pulizia della stringa la facevo per usare name come chiave di un dict
@@ -149,7 +149,7 @@ def hs_check(hs, table, conn):
         conn.execute(ins)
         return "Inserted"
     else:
-        print "già dentro"
+        # print "già dentro"
         for i in ris:
             return i["idHand_sides"]
 
@@ -195,7 +195,7 @@ def read_all(mypath, mypath_results):
         ds_name = '_'.join(f.split("_")[0:2]) # ora i nomi non sono più orcid_SPIDER, ma organizations_orcid_SPIDER, quindi tagliare sul primo '_' non funziona più
         ds_name_dict = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict  # Ho aggiunto _dict perché lo uso solo per riemmpire il dizionario, che non userò più a breve. Lo tengo comunque per non inncasinare  il codice
         if "stats" not in f:
-            print f
+            print "file analizzato: {}".format(f)
             attributes, dependencies = deps_classe.read_dep(mypath_results + f)
 
             # Problema: i singoli insert sono LENTI. Provo ad eseguirne tanti assieme
@@ -236,10 +236,15 @@ def read_all(mypath, mypath_results):
             # Commento momentaneo
             values = ""
             for dep in dependencies:
+                print "controllo la dep: {}".format(dep)
+                # if dep.lhs[0] != 0:
                 if dep.lhs:
                     values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
                 else:
+                    # values += "('NULL'), "
                     values += "('NULL'), "
+                print dep.lhs
+                print dep.rhs
                 if dep.rhs:
                     values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
                 else:
@@ -268,8 +273,15 @@ def read_all(mypath, mypath_results):
                     tmp_rhs = str(dep.rhs).replace('[', '').replace(']', '')
                 else:
                     tmp_rhs = "NULL"
-                selects_dependencies += '("{}", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), '.format(dep_type, tmp_lhs, tmp_rhs)
-                selects_datasets += '((SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"), (SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}" AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}") AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))), '.format(ds_name, dep_type, tmp_lhs, tmp_rhs)
+                selects_dependencies += """("{}",
+                                           (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"),
+                                           (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), """.format(dep_type, tmp_lhs, tmp_rhs)
+
+                selects_datasets += """((SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"),
+                                        (SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}"
+                                            AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
+                                            AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))
+                                       ), """.format(ds_name, dep_type, tmp_lhs, tmp_rhs)
                 # print "Selects_dependencies dopo: {}".format(selects_dependencies)
                 # print "\n\n"
                 # print "Selects_datasets dopo {}".format(selects_datasets)
@@ -331,13 +343,13 @@ def read_all(mypath, mypath_results):
 
 
 def handle_deps(mypath, mypath_results):
-    # responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
+    responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
     stats, ds_names, final_dep_results = read_all(mypath, mypath_results)
     return stats, ds_names, final_dep_results
 
 if __name__ == "__main__":
     mypath = sys.argv[1]
     mypath_results = sys.argv[2]
-    stats, ds_names, final_dep_results = handle_deps(mypath, mypath_results)
+    stats, ds_names_dict, final_dep_results = handle_deps(mypath, mypath_results)
     with open("objs.pkl", "w") as f:
-        pickle.dump([stats, ds_names, final_dep_results], f)
+        pickle.dump([stats, ds_names_dict, final_dep_results], f)

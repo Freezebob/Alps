@@ -11,8 +11,8 @@ class my_gui:
         self.label.pack()
 
         self.ds_list_box = tkinter.Listbox(master)
-        self.ds_list_box.configure(selectmode=tkinter.MULTIPLE, width=9, height=5)
-        self.ds_list_box.pack()
+        self.ds_list_box.configure(selectmode=tkinter.MULTIPLE, width=50, height=20)
+        self.ds_list_box.pack(side="left",fill="both", expand=True)
 
         self.ds_button = tkinter.Button(master,text="Get Selection",command= self.get_selection)
         self.ds_button.pack()

@@ -110,9 +110,16 @@ def read_dep(file_name): # Il caso stats è a parte
             results = True
         elif results == True:
             both = line.rstrip("\n").split(symbol)
-            lhs = both[0].split(",") # Lo split mi crea una lista. Il problema è che l'ordine dei suoi elementi così conta, ma in verità un lhs [1,2] è uguale ad un [2,1]
-            rhs = both[1].split(",")
-
+            # lhs = both[0].split(",") # Lo split mi crea una lista. Il problema è che l'ordine dei suoi elementi così conta, ma in verità un lhs [1,2] è uguale ad un [2,1]
+            # rhs = both[1].split(",")
+            print "line: {}".format(line)
+            print "both: {}".format(both)
+            print "both[0]: {}".format(both[0])
+            print "both[1]: {}".format(both[1])
+            lhs = [int(i) if i else '' for i in both[0].split(",")]# Lo split mi crea una lista. Il problema è che l'ordine dei suoi elementi così conta, ma in verità un lhs [1,2] è uguale ad un [2,1]
+            rhs = [int(i) if i else '' for i in both[1].split(",")]
+            print "lhs: {}".format(lhs)
+            print "rhs: {}".format(rhs)
             # Potrei gestire una lista di int e non di string, ma ormai ho strutturato tutta l'app ini questo modo e non avrei comuqnue particolari vantaggi
             # lhs = [int(i if i != '' else 0) for i in both[0].split(",")]
             # rhs = [int(i if i != '' else 0) for i in both[1].split(",")]
@@ -146,6 +153,7 @@ def read_uccs(file_name):
             results = True
         elif results == True:
             #print UCC(line.rstrip("\n").split(","))
-            UCCs.append(UCC(line.rstrip("\n").split(",")))
+            # UCCs.append(UCC(line.rstrip("\n").split(",")))
+            UCCs.append(UCC([int(i) if i else '' for i in line.rstrip("\n").split(",")]))
             #print UCCs[0]
     return columns, UCCs
