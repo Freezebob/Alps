@@ -141,6 +141,18 @@ def read_stats(file_name):
     ris.index = ris["columnIdentifier"]
     return ris
 
+def read_stats_sql(file_name):
+    #with open('ris', 'r') as myfile:
+    file_path = "/home/marco/Scrivania/dep/results/" + file_name
+    with open(file_path, 'r') as myfile:
+        data=myfile.read().replace('\n', '')
+    ris = pd.DataFrame()
+    for obj in metanome_api.decode_stacked(data):
+        tmp = pd.DataFrame.from_dict(obj["statisticMap"])
+        tmp["columnIdentifier"] = obj["columnCombination"]["columnIdentifiers"][0]["columnIdentifier"]
+        stats.to_sql(file_name, con=engine, if_exists="replace", index=False)
+
+
 def read_uccs(file_name):
     f = open(file_name, "r")
     columns = {}

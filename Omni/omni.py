@@ -135,6 +135,8 @@ def exec_omni(mypath):
 
 
 # Lista di tutti i file nella seguente cartella
+# DEVO SCRIVERLA IN UN FILE A PARTE DA CUI POOSSANO PRENDERLA TUTTI I PACKAGE CHE VOGLIONO
+# (Dato che anche manipolation la deve usare)
 def files_in_dir(mypath_results):
     #mypath = "/home/marco/Scrivania/dep/results/"
     onlyfiles = [f for f in os.listdir(mypath_results) if os.path.isfile(os.path.join(mypath_results, f))]
@@ -182,7 +184,7 @@ def read_all(mypath, mypath_results):
     #     values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
     #     engine.execute("INSERT IGNORE INTO Alps.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
     #     engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
-    # # df.to_sql('users', con=engine)
+    # df.to_sql('users', con=engine)
 
     final_dep_results = collections.defaultdict(dict)
     stats = {}
@@ -234,25 +236,25 @@ def read_all(mypath, mypath_results):
 
 
             # Commento momentaneo
-            values = ""
-            for dep in dependencies:
-                print "controllo la dep: {}".format(dep)
-                # if dep.lhs[0] != 0:
-                if dep.lhs:
-                    values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
-                else:
-                    # values += "('NULL'), "
-                    values += "('NULL'), "
-                print dep.lhs
-                print dep.rhs
-                if dep.rhs:
-                    values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
-                else:
-                    values += "('NULL'), "
-                print "Values dopo {}".format(values)
-            values = values[:-2]
-            if values:
-                engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+            # values = ""
+            # for dep in dependencies:
+            #     print "controllo la dep: {}".format(dep)
+            #     # if dep.lhs[0] != 0:
+            #     if dep.lhs:
+            #         values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+            #     else:
+            #         # values += "('NULL'), "
+            #         values += "('NULL'), "
+            #     print dep.lhs
+            #     print dep.rhs
+            #     if dep.rhs:
+            #         values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+            #     else:
+            #         values += "('NULL'), "
+            #     print "Values dopo {}".format(values)
+            # values = values[:-2]
+            # if values:
+            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
 
             # Devo ripetere il ciclo dep purtroppo. Vediamo più avanti se c'è un'alternativa
             selects_dependencies = ""
@@ -339,6 +341,8 @@ def read_all(mypath, mypath_results):
             #stats[f.split("_")[0]] = read_stats(mypath + f)
             #print mypath + f
             stats[ds_name_dict] = deps_classe.read_stats(mypath_results + f)
+            # stats[ds_name_dict].to_sql(f.split("_")[0]+"_stats", con=engine, if_exists="replace", index=False)
+
     return (stats, ds_names, final_dep_results)
 
 

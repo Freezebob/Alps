@@ -1,3 +1,5 @@
+#!/home/marco/anaconda2/bin/python
+#-*- coding: utf-8 -*-
 import copy as cp
 import pickle
 import collections
@@ -19,10 +21,10 @@ from sqlalchemy.sql import select
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 
 
-sys.path.append('/home/marco/github')
-from Alps.Manipolation import gui
+sys.path.append('/home/marco/github/Alps')
+from Manipolation import gui
 #from Omni.deps_classe import *
-from Alps.Omni import deps_classe
+from Omni import deps_classe
 
 attributes = {1: 'id',
  10: 'country',
@@ -484,6 +486,10 @@ if __name__ == "__main__":
 #         print "slice per processo: {}".format(i)
         processes.append(mp.Process(target=process_function, args=(i, selected_options, exclusive_deps, stats, opened_csvs)))
 
+    client = pm.MongoClient()
+    db = client["Deps_db"]
+    fds_collection = db["FDS"]
+    fds_collection.create_index([("test_ds", pm.DESCENDING), ("source_ds", pm.DESCENDING)])
     start = time.time()
     for x in processes:
         x.start()
@@ -493,28 +499,26 @@ if __name__ == "__main__":
     end = time.time()
     print(end-start)
 
-    client = pm.MongoClient()
-    db = client["Deps_db"]
-    fds_collection = db["FDS"]
     for option in selected_options:
         mongo_dict = fds_collection.find_one({"source_ds": option})
         sum_dict = collections.defaultdict(int)
     #     pprint.pprint(mongo_dict)
-        for key in mongo_dict["dependencies"].keys():
-            somma = 0
-        #     print key
-            if mongo_dict["dependencies"][key]:
-                for i in mongo_dict["dependencies"][key][1]:
-                    somma += (sum(i[1]) - max(i[1]))
-                sum_dict[key] = somma
-        sorted_x = sorted(sum_dict.items(), key=operator.itemgetter(1))
+        if mongo_dict:
+            for key in mongo_dict["dependencies"].keys():
+                somma = 0
+            #     print key
+                if mongo_dict["dependencies"][key]:
+                    for i in mongo_dict["dependencies"][key][1]:
+                        somma += (sum(i[1]) - max(i[1]))
+                    sum_dict[key] = somma
+            sorted_x = sorted(sum_dict.items(), key=operator.itemgetter(1))
 
-        # for key in deps_screm_nuovo["alpsv20dedup"]["alpsv20"]["fds"].keys():
-        # Devo solo sistemare l'output. Non funziona se per una copia di ds non ci sono dipendenze esclusive (non nulle) da visualizzare
-        for key in sorted_x:
-            print "Dependency: {}".format(key[0])
-            print "Names: {}\n".format(attributes_names(key[0]))
-            for i, j in zip(mongo_dict["dependencies"][key[0]][0], mongo_dict["dependencies"][key[0]][1]):
-                print "\033[1m Key \033[0m: {}\n\033[1m Vals \033[0m: {}\n".format(i, j)
-            print "----------------------"
-        print asd
+            # for key in deps_screm_nuovo["alpsv20dedup"]["alpsv20"]["fds"].keys():
+            # Devo solo sistemare l'output. Non funziona se per una copia di ds non ci sono dipendenze esclusive (non nulle) da visualizzare
+            for key in sorted_x:
+                print "Dependency: {}".format(key[0])
+                print "Names: {}\n".format(attributes_names(key[0]))
+                for i, j in zip(mongo_dict["dependencies"][key[0]][0], mongo_dict["dependencies"][key[0]][1]):
+                    print "\033[1m Key \033[0m: {}\n\033[1m Vals \033[0m: {}\n".format(i, j)
+                print "----------------------"
+            print asd

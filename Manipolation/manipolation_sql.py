@@ -17,6 +17,7 @@ import time
 import operator
 import ast
 
+
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import select
@@ -28,79 +29,82 @@ sys.path.append('/home/marco/github/Alps')
 #from Omni.deps_classe import *
 import Omni.deps_classe
 
+
+
 # Globali
 engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
 conn = engine.connect()
 meta = MetaData()
 
-attributes = {'1': 'id',
- '10': 'country',
- '11': 'countryCode',
- '12': 'postcode',
- '13': 'urbanUnit',
- '14': 'urbanUnitCode',
- '15': 'lat',
- '16': 'lon',
- '17': 'revenueRange',
- '18': 'privateFinanceDate',
- '19': 'employees',
- '2': 'acronyms',
- '20': 'typeCategoryCode',
- '21': 'typeLabel',
- '22': 'typeKind',
- '23': 'isPublic',
- '24': 'leaders',
- '25': 'staff',
- '26': 'links',
- '27': 'privateOrgTypeId',
- '28': 'privateOrgTypeLabel',
- '29': 'activities',
- '3': 'alias',
- '30': 'relations',
- '31': 'badges',
- '32': 'children',
- '33': 'identifiers',
- '4': 'label',
- '5': 'creationYear',
- '6': 'commercialLabel',
- '7': 'address',
- '8': 'city',
- '9': 'citycode'}
-
+attributes = {1: 'id',
+              10: 'country',
+              11: 'countryCode',
+              12: 'postcode',
+              13: 'urbanUnit',
+              14: 'urbanUnitCode',
+              15: 'lat',
+              16: 'lon',
+              17: 'revenueRange',
+              18: 'privateFinanceDate',
+              19: 'employees',
+              2: 'acronyms',
+              20: 'typeCategoryCode',
+              21: 'typeLabel',
+              22: 'typeKind',
+              23: 'isPublic',
+              24: 'leaders',
+              25: 'staff',
+              26: 'links',
+              27: 'privateOrgTypeId',
+              28: 'privateOrgTypeLabel',
+              29: 'activities',
+              3: 'alias',
+              30: 'relations',
+              31: 'badges',
+              32: 'children',
+              33: 'identifiers',
+              4: 'label',
+              5: 'creationYear',
+              6: 'commercialLabel',
+              7: 'address',
+              8: 'city',
+              9: 'citycode'}
 
 dtypes_dict = {'id': int,
- 'country': str,
- 'countryCode': str,
- 'postcode': str,
- 'urbanUnit': str,
- 'urbanUnitCode': str,
- 'lat': float,
- 'lon': float,
- 'revenueRange': str,
- 'privateFinanceDate': str,
- 'employees': str,
- 'acronyms': str,
- 'typeCategoryCode': str,
- 'typeLabel': str,
- 'typeKind': str,
- 'isPublic': str,
- 'leaders': str,
- 'staff': str,
- 'links': str,
- 'privateOrgTypeId': float,
- 'privateOrgTypeLabel': str,
- 'activities': str,
- 'alias': str,
- 'relations': str,
- 'badges': str,
- 'children': str,
- 'identifiers': str,
- 'label': str,
- 'creationYear': str,
- 'commercialLabel': str,
- 'address': str,
- 'city': str,
- 'citycode': str}
+               'country': str,
+               'countryCode': str,
+               'postcode': str,
+               'urbanUnit': str,
+               'urbanUnitCode': str,
+               'lat': float,
+               'lon': float,
+               'revenueRange': str,
+               'privateFinanceDate': str,
+               'employees': str,
+               'acronyms': str,
+               'typeCategoryCode': str,
+               'typeLabel': str,
+               'typeKind': str,
+               'isPublic': str,
+               'leaders': str,
+               'staff': str,
+               'links': str,
+               'privateOrgTypeId': float,
+               'privateOrgTypeLabel': str,
+               'activities': str,
+               'alias': str,
+               'relations': str,
+               'badges': str,
+               'children': str,
+               'identifiers': str,
+               'label': str,
+               'creationYear': str,
+               'commercialLabel': str,
+               'address': str,
+               'city': str,
+               'citycode': str}
+
+
 # Le variabili stats, ds_names, final_dep_results calcolate nel package Omni mi servono anche qui. Per non dover rieseguire tutto le tengo salvate con pickle
 def load_results():
     stats = {}
@@ -119,28 +123,28 @@ def intersezione_ign(a, b, dep_type):
     ris = []
     if dep_type == "fds":
         for i in a:
-            #print i
-            #print type(i)
+            # print i
+            # print type(i)
             for j in b:
-                #print 'Confronto {} e {}'.format(i, j)
+                #                 print 'Confronto {} e {}'.format(i, j)
                 if i == j and i not in ris:
-                    #print "buono ==, metto dentro {}".format(i)
+                    # print "buono ==, metto dentro {}".format(i)
                     ris.append(i)
-                    #break  #Se un dataset ha []->7 e un altro ha [1]->7, [4]->7 e [31]->7,
-                    #l'unico FD in comune segnalato è il primo [1]->7. Quindi tolgo il break
+                    # break  #Se un dataset ha []->7 e un altro ha [1]->7, [4]->7 e [31]->7,
+                    # l'unico FD in comune segnalato è il primo [1]->7. Quindi tolgo il break
                 elif i <= j and j not in ris:
-                    #print "buono <=, metto dentro {}".format(j)
+                    # print "buono <=, metto dentro {}".format(j)
                     ris.append(j)
-                    #break
+                    # break
                 elif j <= i and i not in ris:
-                    #print "buono >=, metto dentro {}".format(i)
+                    # print "buono >=, metto dentro {}".format(i)
                     ris.append(i)
-                    #break
+                    # break
 
     elif dep_type == "inds" or dep_type == "uccs":
         for i in a:
             for j in b:
-                #print 'Confronto {} e {}'.format(i, j)
+                # print 'Confronto {} e {}'.format(i, j)
                 if i == j and i not in ris:
                     ris.append(i)
     return ris
@@ -150,7 +154,7 @@ def intersection_all_ign(dep_type, dep_results):
     dep_intersection = []
     first = True
     for name in ds_names:
-        dep_list = dep_results[name][dep_type]
+        dep_list = dep_results[re.sub('[(){}<>]', '', name)][dep_type]
         if first:
             dep_intersection = dep_list
             first = False
@@ -160,22 +164,25 @@ def intersection_all_ign(dep_type, dep_results):
 
 
 # intersection_some_ign("fds", final_dep_results_copy, selected_options)
+# Visto che adesso faccio solo l'intersezione tra due dataset potrei usare direttamente intersection_ign e basta
 def intersection_some_ign(dep_type, dep_results, datasets):
     dep_intersection = []
     first = True
     for name in datasets:
-        print name
-        dep_list = dep_results[name][dep_type]
+        #         print "Intersezione, considero {}".format(name)
+        dep_list = dep_results[re.sub('[(){}<>]', '', name)][dep_type]
+        #         print "dep_results in intersection_some_ign: {}".format(dep_results)
         if first:
             dep_intersection = dep_list
             first = False
         else:
             dep_intersection = intersezione_ign(dep_intersection, dep_list, dep_type)
     return dep_intersection
+
+
 # 1 Si crea la lista dei file presenti nella cartella
 # 2 Si leggono questi file e si crea una lista con i loro nomi semplificati
 # 3 Si calcola l'intersezione tra tutti loro su una certa dipendenza, es IND
-
 
 
 # Voglio escudere le dipendenze che considerano colonne vuote
@@ -197,38 +204,41 @@ def intersection_some_ign(dep_type, dep_results, datasets):
 
 
 # Scrematura delle dipendenze, tolgo le nulle e quelle riconducibili ad una UCC (per lhs ho una UCC oppure un suo sovrainsieme)
-def deps_screm(final_dep_results, ds_names):
-    final_dep_results_copy = cp.deepcopy(final_dep_results)
-    for name in ds_names:
-        print name
-        for i in final_dep_results[name]["fds"]:
-            #print i.rhs[0]
-            #print "Perc " + str(stats[name]["Percentage of Nulls"][attributes[i.rhs[0]]])
-            if stats[name]["Percentage of Nulls"][attributes[i.rhs[0]]] == 100:
-                #print i
-                #print "Ha {} nullo".format(i.rhs)
-                final_dep_results_copy[name]["fds"].remove(i)  # Il remove creava dei problemi col for i, scombussolando l'ordine
-                #print "-------"
-            for j in final_dep_results[name]["uccs"]:
-                # Ho cambiato la classe UCC
-                # if set(i.lhs) == set(j.comb) or set(i.lhs) >= set(j.comb):   #Trovo lo stesso caso mille volte ['1'] e ['1'], ['1'] e ['1'] eccc
-                    #print "lhs: {}, ucc: {}".format(i.lhs, j.comb)           #Penserò ad una soluzione
-                    #print "-------"
-                if set(i.lhs) == set(j.lhs) or set(i.lhs) >= set(j.lhs):
-                    final_dep_results_copy[name]["fds"].remove(i)
-    return final_dep_results_copy
+def deps_screm(deps, ds_name, stats):
+    print "Scremo le dipendenze"
+    deps_copy = cp.deepcopy(deps)
+
+    for i in deps["fds"]:
+        # print i.rhs[0]
+        # print "Perc " + str(stats[name]["Percentage of Nulls"][attributes[i.rhs[0]]])
+        #         print "ds_name: {}".format(ds_name)
+        if stats[re.sub('[(){}<>]', '', ds_name)]["Percentage of Nulls"][attributes[i.rhs[0]]] == 100:
+            # print i
+            # print "Ha {} nullo".format(i.rhs)
+            deps_copy["fds"].remove(i)  # Il remove creava dei problemi col for i, scombussolando l'ordine
+            # print "-------"
+        for j in deps["uccs"]:
+            # Ho cambiato la classe UCC
+            # if set(i.lhs) == set(j.comb) or set(i.lhs) >= set(j.comb):   #Trovo lo stesso caso mille volte ['1'] e ['1'], ['1'] e ['1'] eccc
+            # print "lhs: {}, ucc: {}".format(i.lhs, j.comb)           #Penserò ad una soluzione
+            # print "-------"
+            if set(i.lhs) == set(j.lhs) or set(i.lhs) >= set(j.lhs):
+                deps_copy["fds"].remove(i)
+    #     print "Dipendenze dopo la scrematura: {}".format(deps_copy)
+    return deps_copy
 
 
 # opened_csvs contiene tutti i csv pronti per essere analizzati
 def csvs(csvpath, ds_names):
     opened_csvs = {}
-    #csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
+    # csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
     onlyfiles = [f for f in os.listdir(csvpath) if os.path.isfile(os.path.join(csvpath, f))]
     for f in onlyfiles:
         only_name = re.sub(r'.*_', '', f).split('.')[0]
         only_name = re.sub('[(){}<>]', '', only_name)
-        print only_name.lower()
-        opened_csvs[only_name.lower()] = pd.read_csv('/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/' + f, sep=',', dtype=dtypes_dict)
+        # print only_name.lower()
+        opened_csvs[only_name.lower()] = pd.read_csv('/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/' + f,
+                                                     sep=',', dtype=dtypes_dict)
     #     for i in opened_csvs[only_name.lower()].columns:
     #         print i
     #         opened_csvs[only_name.lower()][i] = opened_csvs[only_name.lower()][i].astype(str)
@@ -248,27 +258,51 @@ def csvs(csvpath, ds_names):
     return opened_csvs
 
 
-# Dipendenze esclusive per ogni dataset selezionato
-def exclusive_d(selected_options, final_dep_results_copy):
+# Dipendenze esclusive per i due dataset selezionati (2 alla volta si fa)
+# names[0] -> source
+# names[1] -> test
+def exclusive_d(names, datasets_dict, final_dep_results, inter_fds):
     exclusive_deps = collections.defaultdict(dict)
-    for ds in selected_options:
-        tmp = []
-        for i in final_dep_results_copy[ds]["fds"]:
-            if i not in inter_fds:
-                p = False
-                for y in inter_fds:
-                    if i <= y:
-                        p = True
-                if p == False:
-                    tmp.append(i)
-        exclusive_deps[ds]["fds"] = tmp
+    # for source_ds in names: # dataset_dict.keyes() non andava bene dato che riordina sempre gli elementi alfabeticamente
+    #     for ds in names:
+    #         if ds != source_ds:
+    #             test_ds = ds
+    source_ds = names[0]
+    test_ds = names[1]
+    inserts = ""
+    tmp = []
+    # Scorro le dipendenze del SOURCE_ds per trovare quelle esclusive (considerando l'altro ds)
+    # Datasets_dict contiene semmpre due ds che a turno faranno da SOURCE
+    for i in final_dep_results[re.sub('[(){}<>]', '', source_ds)]["fds"]:
+        if i not in inter_fds:
+            p = False
+            for y in inter_fds:
+                if i <= y:
+                    p = True
+            if p == False:
+                #                     print "Dip escl i: {}".format(i)
+                tmp.append(i)
+                inserts += """("{}", "{}", (SELECT idDependencies FROM Alps.Dependencies
+                                        WHERE `type` = "{}"
+                                        AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
+                                        AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))), """.format(
+                    datasets_dict[test_ds], datasets_dict[source_ds], "FD", re.sub('[(){}\[\]<>]', '', str(i.lhs)),
+                    re.sub('[(){}\[\]<>]', '', str(i.rhs)))
+    exclusive_deps[re.sub('[(){}<>]', '', source_ds)]["fds"] = tmp
+    inserts = inserts[:-2]
+
+    if inserts:
+        #         print "INSERT IGNORE INTO Alps.Exclusive_deps (`datasets_test_id`, `datasets_source_id`, `dependencies_id`) VALUES {};".format(inserts)
+        engine.execute(
+            "INSERT IGNORE INTO Alps.Exclusive_deps (`datasets_test_id`, `datasets_source_id`, `dependencies_id`) VALUES {};".format(
+                inserts))
     return exclusive_deps
 
 
 # Il mio groupby
 def bing_bing_bong_new(a_list, ds, opened_csvs):
     print "Biiiiing"
-#     start = time.time()
+    #     start = time.time()
     asd = "ciao"
     dict_df = opened_csvs[ds][[attributes[i] for i in a_list]].to_dict("split")
     dict_df_data = dict_df["data"]
@@ -284,73 +318,73 @@ def bing_bing_bong_new(a_list, ds, opened_csvs):
 
 
 def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
-#     scre_dict = rec_dd()
-    #deps_screm_nuovo_process = rec_dd()
+    #     scre_dict = rec_dd()
+    # deps_screm_nuovo_process = rec_dd()
     client_p = pm.MongoClient()
     db = client_p["Deps_db"]
     fds_collection = db["FDS"]
     seg_list = []
     for ds1 in selected_options:
-            for ds2 in selected_options:
-                if (ds1 != ds2 and d_p[ds2]):
-                    tmp = []
-                    l1 = d_p[ds2][0]
-                    l2 = d_p[ds2][1]
-                    for i in exclusive_deps[ds2]["fds"][l1:l2]:
-                        #print "controllo {} di {} su {}".format(i, ds2, ds1)
-                        if stats[ds1]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
-                            new_i = cp.deepcopy(i)
-                            for x in i.lhs:
-                                #print "esamino {}".format(x)
-                                #print stats[ds1]["Percentage of Nulls"][attributes[x]]
-                                #print "-----"
-                                if stats[ds1]["Percentage of Nulls"][attributes[x]] == 100:
-                                    new_i.lhs.remove(x)
-                            #print new_i
-                            if new_i not in tmp:
-                                tmp.append(new_i)
+        for ds2 in selected_options:
+            if (ds1 != ds2 and d_p[ds2]):
+                tmp = []
+                l1 = d_p[ds2][0]
+                l2 = d_p[ds2][1]
+                for i in exclusive_deps[ds2]["fds"][l1:l2]:
+                    # print "controllo {} di {} su {}".format(i, ds2, ds1)
+                    if stats[ds1]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
+                        new_i = cp.deepcopy(i)
+                        for x in i.lhs:
+                            # print "esamino {}".format(x)
+                            # print stats[ds1]["Percentage of Nulls"][attributes[x]]
+                            # print "-----"
+                            if stats[ds1]["Percentage of Nulls"][attributes[x]] == 100:
+                                new_i.lhs.remove(x)
+                        # print new_i
+                        if new_i not in tmp:
+                            tmp.append(new_i)
 
-                    #scre_dict[ds1][ds2] = np.array(tmp, dtype=FD) #à stesso discorso: provo su ds1 le dip esclusive di ds2,
-                                              #ma queste sono scremate sulla struttura di ds1
-                    #for dep in tmp:
-                        #print "ds1: {}, ds2: {}. Dep: {}".format(ds1, ds2, dep)
-                    t_dict = {
-                            "test_ds": ds1,
-                            "source_ds": ds2,
-                            "dependencies": {},
-                            "count": 0
-                        }
-#                     print("t_dict: {}".format(t_dict))
-                    for dep in tmp:
-                        #tmp_dict = {}
-                        #print dep
-                        #a_list = [el for el in dep.lhs]
-                        #print a_list
-                        a_list = dep.lhs
-                        #print a_list
-                        a_list.append(dep.rhs[0])
-                        #print "a_list: {}".format(a_list)
-                        if len(a_list) > 1:
-                            #tmp_dict[str(a_list)] = bing_bing_bong(a_list, ds1)
-                            #deps_screm[ds1][ds2]["fds"] = tmp_dict
-                            result = bing_bing_bong_new(a_list, ds1,opened_csvs)
-                            if result:
-                                a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
-#                                 deps_screm_nuovo_process[ds1][ds2]["fds"][str(a_list)] = np.array([np.array(result.keys()), a])
-                                t_dict["dependencies"][str(a_list)] = [result.keys(), a]
-                            else:
-                                t_dict["dependencies"][str(a_list)] = []
+                # scre_dict[ds1][ds2] = np.array(tmp, dtype=FD) #à stesso discorso: provo su ds1 le dip esclusive di ds2,
+                # ma queste sono scremate sulla struttura di ds1
+                # for dep in tmp:
+                # print "ds1: {}, ds2: {}. Dep: {}".format(ds1, ds2, dep)
+                t_dict = {
+                    "test_ds": ds1,
+                    "source_ds": ds2,
+                    "dependencies": {},
+                    "count": 0
+                }
+                #                     print("t_dict: {}".format(t_dict))
+                for dep in tmp:
+                    # tmp_dict = {}
+                    # print dep
+                    # a_list = [el for el in dep.lhs]
+                    # print a_list
+                    a_list = dep.lhs
+                    # print a_list
+                    a_list.append(dep.rhs[0])
+                    # print "a_list: {}".format(a_list)
+                    if len(a_list) > 1:
+                        # tmp_dict[str(a_list)] = bing_bing_bong(a_list, ds1)
+                        # deps_screm[ds1][ds2]["fds"] = tmp_dict
+                        result = bing_bing_bong_new(a_list, ds1, opened_csvs)
+                        if result:
+                            a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
+                            #                                 deps_screm_nuovo_process[ds1][ds2]["fds"][str(a_list)] = np.array([np.array(result.keys()), a])
+                            t_dict["dependencies"][str(a_list)] = [result.keys(), a]
+                        else:
+                            t_dict["dependencies"][str(a_list)] = []
 
-                    for k in t_dict["dependencies"].keys():
-                        #t_dict["dependencies"]["dependencies."+k] = t_dict["dependencies"].pop(k)
-                        fds_collection.update_one(
-                            {"test_ds": ds1, "source_ds": ds2, "count": {"$lt": 200}},
-                            {
-                                "$set": {"dependencies."+k: t_dict["dependencies"][k]},
-                                "$inc": {"count": 1}
-                            },
-                            upsert=True
-                        )
+                for k in t_dict["dependencies"].keys():
+                    # t_dict["dependencies"]["dependencies."+k] = t_dict["dependencies"].pop(k)
+                    fds_collection.update_one(
+                        {"test_ds": ds1, "source_ds": ds2, "count": {"$lt": 200}},
+                        {
+                            "$set": {"dependencies." + k: t_dict["dependencies"][k]},
+                            "$inc": {"count": 1}
+                        },
+                        upsert=True
+                    )
 
 
 def create_slides(n, n_slides):
@@ -365,7 +399,7 @@ def split(a, n):
     l = list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in xrange(n))
     for i in xrange(len(l)):
         if l[i]:
-            l[i] = [l[i][0], l[i][len(l[i])-1] +1]
+            l[i] = [l[i][0], l[i][len(l[i]) - 1] + 1]
     return l
 
 
@@ -393,6 +427,7 @@ def dict_merge(dct, merge_dct):
         else:
             dct[k] = merge_dct[k]
 
+
 def load_ds_names_sql():
     ris = engine.execute("SELECT name FROM Alps.Datasets")
     ds_names = []
@@ -401,142 +436,179 @@ def load_ds_names_sql():
     return ds_names
 
 
-def insert_exclusive_deps(selected_options):
+# Solo FD per ora
+def recreate_deps(deps_ids):
+    print "Ricreo le dipendenze"
+    deps = collections.defaultdict(list)
+    for db_id in deps_ids:
+        #         print "db_id: {}".format(db_id)
+        dep = engine.execute("SELECT * FROM Alps.Dependencies WHERE idDependencies = {}".format(db_id)).fetchone()
+
+        lhs = \
+        engine.execute("SELECT `string` FROM Alps.Hand_sides WHERE idHand_sides = {}".format(dep["idLHS"])).fetchone()[
+            0]  # ottengo qualcosa diquesto tipo '10, 5, 4'
+        # print "lhs: {}".format(lhs)
+        # print "split ', ': {}".format(lhs.split(", "))
+        lhs = [int(i) if i != 'NULL' else '' for i in lhs.split(", ")]
+        # print "int lhs: {}".format(lhs)
+
+        rhs = \
+        engine.execute("SELECT `string` FROM Alps.Hand_sides WHERE idHand_sides = {}".format(dep["idRHS"])).fetchone()[
+            0]
+        # print "rhs: {}".format(rhs)
+        # print "split ', ': {}".format(rhs.split(", "))
+        rhs = [int(i) if i != 'NULL' else '' for i in rhs.split(", ")]
+        # print "int rhs: {}".format(rhs)
+
+        #         print "lhs: {}, rhs: {}".format(lhs, rhs)
+        #         print "dep[type]: {}".format(dep["type"])
+        if dep["type"] == "FD":
+            deps["fds"].append(Omni.deps_classe.FD(lhs, rhs))
+        elif dep["type"] == "UCC":
+            deps["uccs"].append(Omni.deps_classe.UCC(lhs))
+    #     print "deps: {}".format(deps)
+    return deps
+
+
+def insert_exclusive_deps(selected_options, stats):
     # ds1: source_ds
     # ds2: test_ds
+    inter_fds_dict = dict()
+    final_dep_results = collections.defaultdict(dict)
     for ds1 in selected_options:
         for ds2 in selected_options:
             if (ds1 != ds2):
+                print "Confronto source:{} con  test:{}".format(ds1, ds2)
                 # dipendenze esclusive di ds1 che non sono in ds2
-                ds1_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
-                ds2_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds2)).fetchone()[0]
-                selects = engine.execute("""SELECT dependencies_idDependencies
-                                  FROM Alps.Datasets_Dependencies
-                                  WHERE datasets_idDataset = {}
-                                  AND dependencies_idDependencies not in
-            									(SELECT dependencies_idDependencies FROM Alps.Datasets_Dependencies
-                                                 WHERE datasets_idDataset = {});""".format(ds1_id, ds2_id))
-                values = ""
-                for dep in selects:
-                    values += "({}, {}, {}), ".format(ds2_id, ds1_id, dep[0])
-                values = values[:-2]
-                engine.execute("INSERT IGNORE INTO Alps.Exclusive_deps (`datasets_test_id`, `datasets_source_id`, `dependencies_id`) VALUES {};".format(values))
+                ds1_id = \
+                engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
+                if "fds" not in final_dep_results[re.sub('[(){}<>]', '',
+                                                         ds1)].keys():  # controllo su fds, ma poi rimepio anche le uccs (e ini futuro le altre)
+                    # Dato che confronto tutti i ds selezionati. Un certo ds sarà confrontato con
+                    # tutti gli altri e mi basta riempire la sua parte di dict una volta sola.
+                    # Quando ci sarà "fds" come chiave vorrà dire che è stato riempito e non serve rifarlo.
+                    print "Non ho ancora inserito {} in final_dep_results".format(ds1)
+
+                    #                     print "ds1_id: {}".format(ds1_id)
+                    ds1_deps = engine.execute("""SELECT dependencies_idDependencies
+                                      FROM Alps.Datasets_Dependencies
+                                      WHERE datasets_idDataset = {}""".format(ds1_id))
+                    ds1_deps = [r[0] for r in ds1_deps]
+                    #                     print "ds1_deps: {}".format(ds1_deps)
+                    deps = recreate_deps(ds1_deps)
+                    final_dep_results[re.sub('[(){}<>]', '', ds1)]["fds"] = deps_screm(deps, ds1, stats)["fds"]
+                    final_dep_results[re.sub('[(){}<>]', '', ds1)]["uccs"] = deps["uccs"]
+                    # pulilzia
+                ds2_id = \
+                engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds2)).fetchone()[0]
+                if "fds" not in final_dep_results[re.sub('[(){}<>]', '', ds2)].keys():
+                    print "Non ho ancora inserito {} in final_dep_results".format(ds2)
+                    ds2_deps = engine.execute("""SELECT dependencies_idDependencies
+                                      FROM Alps.Datasets_Dependencies
+                                      WHERE datasets_idDataset = {}""".format(ds2_id))
+                    ds2_deps = [r[0] for r in ds2_deps]
+                    deps = recreate_deps(ds2_deps)
+                    final_dep_results[re.sub('[(){}<>]', '', ds2)]["fds"] = deps_screm(deps, ds2, stats)["fds"]
+                    final_dep_results[re.sub('[(){}<>]', '', ds2)]["uccs"] = deps["uccs"]
+                    # A questo punto ho le liste di oggetti FD ( e UCC)
+                    # Pulizia
+                #                 print "final_dep_results: {}".format(final_dep_results)
+
+                # Se ho source: A e test: B calcolo inter_AB, ma quando avrò source:B e test:A l'inter_BA = inter_AB, ma ormai
+                # è stato cancellato. Tengo gli inter salvati
+                names = [ds1, ds2]
+                names.sort()
+                names_string = '_'.join([i for i in names])
+                print "names_string: {}".format(names_string)
+                if names_string not in inter_fds_dict.keys():
+                    print "Non ce l'ho ancora nel dict"
+                    inter_fds_dict[names_string] = intersection_some_ign("fds", final_dep_results, [ds1, ds2])
+                #                 print "inter_fds: {}".format(inter_fds)
+                exclusive_deps = exclusive_d([ds1, ds2], {ds1: ds1_id, ds2: ds2_id}, final_dep_results,
+                                             inter_fds_dict[names_string])
+
+                # inter_fds tra i due ds
+                # exclusive_deps sui due ds
+    # devo metterli dentro il doppio ciclo for, cambiando qualcosa
+    # faccio il check delle diepndnenze di un ds dopo aver fatto recreate_deps e poi lo innserisco
+    # in final_dep_results che quindi sarà già scremato.
+    # Dopo averlo fatto anche per il ds2 ho le loro dipendenze pulite ed applico (dentro al ciclo) inter_fds ed exclusive_deps
+    # queste dip esclusive le metterò dentro al dataset ( avendo sia ds1 che ds2, l'id delle dip lo recupero, ce li ho già in ds1/2_deps comunque, ma dovrei accoppiarli)
+    # (potrei creare un dict con gli id e le rispettive dip, così le ho già comode da usare)
+
+    # Roba inutile credo
+    # final_dep_results_copy = deps_screm(final_dep_results, selected_options)
+    # inter_fds = intersection_some_ign("fds", final_dep_results_copy, selected_options)
+    # exclusive_deps = exclusive_d(selected_options, final_dep_results_copy, inter_fds)
+    #
+    #
+    #             selects = engine.execute("""SELECT dependencies_idDependencies
+    #                               FROM Alps.Datasets_Dependencies
+    #                               WHERE datasets_idDataset = {}
+    #                               AND dependencies_idDependencies not in
+    #         									(SELECT dependencies_idDependencies FROM Alps.Datasets_Dependencies
+    #                                              WHERE datasets_idDataset = {});""".format(ds1_id, ds2_id))
+    #
+    #
+    #             values = ""
+    #             for dep in selects:
+    #                 values += "({}, {}, {}), ".format(ds2_id, ds1_id, dep[0])
+    #             values = values[:-2]
+    #             engine.execute("INSERT IGNORE INTO Alps.Exclusive_deps (`datasets_test_id`, `datasets_source_id`, `dependencies_id`) VALUES {};".format(values))
 
 
 def insert_violations(selected_options):
     for ds1 in selected_options:
         violated_deps = []
         ds1_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
-        deps = engine.execute("SELECT dependencies_id FROM Alps.Exclusive_deps WHERE datasets_test_id = {}".format(ds1_id))
+        deps = engine.execute(
+            "SELECT dependencies_id FROM Alps.Exclusive_deps WHERE datasets_test_id = {}".format(ds1_id))
         # Adesso ho gli id delle dep violate da ds1
         for dep in deps:
             # Ho la lista degli attributi che compongono l'LHS
 
-            dep_type = engine.execute("SELECT `type` FROM Alps.Dependencies WHERE idDependencies = {}".format(dep[0])).fetchone()[0]
+            dep_type = \
+            engine.execute("SELECT `type` FROM Alps.Dependencies WHERE idDependencies = {}".format(dep[0])).fetchone()[
+                0]
             if dep_type == "FD":
                 print "dipendenza violate da: {}".format(ds1)
-                print "dep_type: {}". format(dep_type)
+                print "dep_type: {}".format(dep_type)
                 lhs_list = engine.execute("""SELECT `string` FROM Alps.Hand_sides
                                                WHERE idHand_sides = (SELECT idLHS FROM Alps.Dependencies
-                                                                    WHERE idDependencies = {})""".format(dep[0])).fetchone()[0]
+                                                                    WHERE idDependencies = {})""".format(
+                    dep[0])).fetchone()[0]
                 rhs_list = engine.execute("""SELECT `string` FROM Alps.Hand_sides
                                                WHERE idHand_sides = (SELECT idRHS FROM Alps.Dependencies
-                                                                    WHERE idDependencies = {})""".format(dep[0])).fetchone()[0]
+                                                                    WHERE idDependencies = {})""".format(
+                    dep[0])).fetchone()[0]
                 print "lhs_list: {}".format(lhs_list)
                 print "rhs_list: {}".format(rhs_list)
+                a_list = lhs_list + rhs_list  # Credo non serva comunque
+
+
+# Lista di tutti i file nella seguente cartella
+def files_in_dir(mypath_results):
+    # mypath = "/home/marco/Scrivania/dep/results/"
+    onlyfiles = [f for f in os.listdir(mypath_results) if os.path.isfile(os.path.join(mypath_results, f))]
+    return onlyfiles
+
+
+def load_stats(stats_path):
+    onlyfiles = files_in_dir(stats_path)
+    for file in onlyfiles:
+        if file.split("_")[-1] == "stats":
+            file_path = stats_path + file
+            stats = pd.read_csv(file_path)
+            stats.to_sql(file.spllit("_")[0] + "_stats", con=engine, if_exists="replace", index=False)
 
 
 if __name__ == "__main__":
     ds_names = load_ds_names_sql()
-    print "ds_names: {}".format(ds_names)
+    stats, a, b = load_results()  # Lo tengo solo perché non sono riuscito ancora ad inserire le stats nel db
+    # print "ds_names: {}".format(ds_names)
     root = tkinter.Tk()
     menu = gui.my_gui(root, ds_names)
     root.mainloop()
     selected_options = menu.selected_options
-    insert_exclusive_deps(selected_options)
-    insert_violations(selected_options)
-
-
-
-
-
-
-
-if __name__ == "ellapeppa":
-    # DEVO sostituire questa la lettura del file pickle con delle letture dal database creato
-    stats, ds_names, final_dep_results = load_results()
-
-    # engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
-    # conn = engine.connect()
-    # ris = engine.execute("SELECT name FROM Alps.Datasets")
-    # ds_names = []
-    # for i in ris:
-    #     ds_names.append(i[0]) # Visto che ogni elemento di ris è una tuplla con dim > 1 anche se contiene un solo elemento
-
-    # Non avendo più problemi di memoria provo a non fare nessuna scrematura
-    # final_dep_results_copy = deps_screm(final_dep_results, ds_names)
-
-    asd = "aaaaaaaaaaa"
-    csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
-    opened_csvs = csvs(csvpath, ds_names)
-    root = tkinter.Tk()
-    menu = gui.my_gui(root, ds_names)
-    root.mainloop()
-    selected_options = menu.selected_options
-
-    inter_fds = intersection_some_ign("fds", final_dep_results_copy, selected_options)
-    exclusive_deps = exclusive_d(selected_options, final_dep_results_copy)
-
-    ds_slides = {}
-    for ds in selected_options:
-        # print ds
-        if exclusive_deps[ds]:
-            n = len(exclusive_deps[ds]["fds"])
-        else:
-            n = 0
-        ds_slides[ds] = split(n, 4)
-
-    processes = []
-    dict_process = {}
-    l_d_p = [] #list_dict_process
-    # for i in xrange(len(slides)):
-    for i in xrange(4):
-        for ds in ds_slides.keys():
-            dict_process[ds] = ds_slides[ds][i]
-        l_d_p.append(cp.deepcopy(dict_process))
-        #print l_d_p[i]
-    for i in l_d_p:
-        print i
-        processes.append(mp.Process(target=process_function, args=(i, selected_options, exclusive_deps, stats, opened_csvs)))
-
-    start = time.time()
-    for x in processes:
-        x.start()
-    # results = [output.get() for p in xrange(len(slides))]
-    for x in processes:
-        x.join()
-    end = time.time()
-    print(end-start)
-
-    client = pm.MongoClient()
-    db = client["Deps_db"]
-    fds_collection = db["FDS"]
-    mongo_dict = fds_collection.find_one({"source_ds": "cercauniversita"})
-    sum_dict = collections.defaultdict(int)
-    for key in mongo_dict["dependencies"].keys():
-        somma = 0
-    #     print key
-        if mongo_dict["dependencies"][key]:
-            for i in mongo_dict["dependencies"][key][1]:
-                somma += (sum(i[1]) - max(i[1]))
-            sum_dict[key] = somma
-    sorted_x = sorted(sum_dict.items(), key=operator.itemgetter(1))
-
-    # for key in deps_screm_nuovo["alpsv20dedup"]["alpsv20"]["fds"].keys():
-    for key in sorted_x:
-        print "Dependency: {}".format(key[0])
-        print "Names: {}\n".format(attributes_names(key[0]))
-        for i, j in zip(mongo_dict["dependencies"][key[0]][0], mongo_dict["dependencies"][key[0]][1]):
-            print "\033[1m Key \033[0m: {}\n\033[1m Vals \033[0m: {}\n".format(i, j)
-        print "----------------------"
-    print asd
+    insert_exclusive_deps(selected_options, stats)
+    # insert_violations(selected_options)
