@@ -204,7 +204,8 @@ def intersection_some_ign(dep_type, dep_results, datasets):
 
 
 # Scrematura delle dipendenze, tolgo le nulle e quelle riconducibili ad una UCC (per lhs ho una UCC oppure un suo sovrainsieme)
-def deps_screm(deps, ds_name, stats):
+# def deps_screm(deps, ds_name, stats):
+def deps_screm(deps, ds_name):
     print "Scremo le dipendenze"
     deps_copy = cp.deepcopy(deps)
 
@@ -212,7 +213,9 @@ def deps_screm(deps, ds_name, stats):
         # print i.rhs[0]
         # print "Perc " + str(stats[name]["Percentage of Nulls"][attributes[i.rhs[0]]])
         #         print "ds_name: {}".format(ds_name)
-        if stats[re.sub('[(){}<>]', '', ds_name)]["Percentage of Nulls"][attributes[i.rhs[0]]] == 100:
+        res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds_name.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+        # if stats[re.sub('[(){}<>]', '', ds_name)]["Percentage of Nulls"][attributes[i.rhs[0]]] == 100:
+        if res == 100:
             # print i
             # print "Ha {} nullo".format(i.rhs)
             deps_copy["fds"].remove(i)  # Il remove creava dei problemi col for i, scombussolando l'ordine
@@ -234,17 +237,17 @@ def csvs(csvpath, ds_names):
     # csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
     onlyfiles = [f for f in os.listdir(csvpath) if os.path.isfile(os.path.join(csvpath, f))]
     for f in onlyfiles:
-        only_name = re.sub(r'.*_', '', f).split('.')[0]
-        only_name = re.sub('[(){}<>]', '', only_name)
+        # only_name = re.sub(r'.*_', '', f).split('.')[0]
+        # only_name = re.sub('[(){}<>]', '', only_name)
         # print only_name.lower()
-        opened_csvs[only_name.lower()] = pd.read_csv('/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/' + f,
-                                                     sep=',', dtype=dtypes_dict)
+        opened_csvs[re.sub('[(){}<>]', '', f)] = pd.read_csv('/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/' + f,
+                                                     sep=',', dtype=dtypes_dict).fillna(-1)
     #     for i in opened_csvs[only_name.lower()].columns:
     #         print i
     #         opened_csvs[only_name.lower()][i] = opened_csvs[only_name.lower()][i].astype(str)
 
-    for i in ds_names:
-        opened_csvs[i] = opened_csvs[i].fillna(-1)
+    # for i in ds_names:
+    #     opened_csvs[i] = opened_csvs[i].fillna(-1)
 
     # Non una soluzione elegante, ma ogni tupla con almeno un elemento nullo non è considerata dal groupby
     # e mi rende difficile testare le dipendenze
@@ -272,15 +275,16 @@ def exclusive_d(names, datasets_dict, final_dep_results, inter_fds):
     inserts = ""
     tmp = []
     # Scorro le dipendenze del SOURCE_ds per trovare quelle esclusive (considerando l'altro ds)
-    # Datasets_dict contiene semmpre due ds che a turno faranno da SOURCE
     for i in final_dep_results[re.sub('[(){}<>]', '', source_ds)]["fds"]:
         if i not in inter_fds:
             p = False
             for y in inter_fds:
+                # i = [1]->[3] e  y = [1,2]->[3]. In questo caso non posso considerare i come dip esclusiva
                 if i <= y:
                     p = True
             if p == False:
-                #                     print "Dip escl i: {}".format(i)
+                # Solo quelle che arrivano con p=False sono davvero dip esclusive,
+
                 tmp.append(i)
                 inserts += """("{}", "{}", (SELECT idDependencies FROM Alps.Dependencies
                                         WHERE `type` = "{}"
@@ -304,7 +308,7 @@ def bing_bing_bong_new(a_list, ds, opened_csvs):
     print "Biiiiing"
     #     start = time.time()
     asd = "ciao"
-    dict_df = opened_csvs[ds][[attributes[i] for i in a_list]].to_dict("split")
+    dict_df = opened_csvs[re.sub('[(){}<>]', '', ds)][[attributes[i] for i in a_list]].to_dict("split")
     dict_df_data = dict_df["data"]
 
     result = collections.defaultdict(lambda: collections.defaultdict(int))
@@ -317,7 +321,8 @@ def bing_bing_bong_new(a_list, ds, opened_csvs):
     return result
 
 
-def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
+# def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
+def process_function(d_p, selected_options, exclusive_deps, opened_csvs):
     #     scre_dict = rec_dd()
     # deps_screm_nuovo_process = rec_dd()
     client_p = pm.MongoClient()
@@ -332,13 +337,18 @@ def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
                 l2 = d_p[ds2][1]
                 for i in exclusive_deps[ds2]["fds"][l1:l2]:
                     # print "controllo {} di {} su {}".format(i, ds2, ds1)
-                    if stats[ds1]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
+                    res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+
+                    # if stats[ds1]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
+                    if res != 100:
                         new_i = cp.deepcopy(i)
                         for x in i.lhs:
                             # print "esamino {}".format(x)
                             # print stats[ds1]["Percentage of Nulls"][attributes[x]]
                             # print "-----"
-                            if stats[ds1]["Percentage of Nulls"][attributes[x]] == 100:
+                            res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+                            if res == 100:
+                            # if stats[ds1]["Percentage of Nulls"][attributes[x]] == 100:
                                 new_i.lhs.remove(x)
                         # print new_i
                         if new_i not in tmp:
@@ -444,17 +454,13 @@ def recreate_deps(deps_ids):
         #         print "db_id: {}".format(db_id)
         dep = engine.execute("SELECT * FROM Alps.Dependencies WHERE idDependencies = {}".format(db_id)).fetchone()
 
-        lhs = \
-        engine.execute("SELECT `string` FROM Alps.Hand_sides WHERE idHand_sides = {}".format(dep["idLHS"])).fetchone()[
-            0]  # ottengo qualcosa diquesto tipo '10, 5, 4'
+        lhs = engine.execute("SELECT `string` FROM Alps.Hand_sides WHERE idHand_sides = {}".format(dep["idLHS"])).fetchone()[0]  # ottengo qualcosa diquesto tipo '10, 5, 4'
         # print "lhs: {}".format(lhs)
         # print "split ', ': {}".format(lhs.split(", "))
         lhs = [int(i) if i != 'NULL' else '' for i in lhs.split(", ")]
         # print "int lhs: {}".format(lhs)
 
-        rhs = \
-        engine.execute("SELECT `string` FROM Alps.Hand_sides WHERE idHand_sides = {}".format(dep["idRHS"])).fetchone()[
-            0]
+        rhs = engine.execute("SELECT `string` FROM Alps.Hand_sides WHERE idHand_sides = {}".format(dep["idRHS"])).fetchone()[0]
         # print "rhs: {}".format(rhs)
         # print "split ', ': {}".format(rhs.split(", "))
         rhs = [int(i) if i != 'NULL' else '' for i in rhs.split(", ")]
@@ -470,7 +476,9 @@ def recreate_deps(deps_ids):
     return deps
 
 
-def insert_exclusive_deps(selected_options, stats):
+# def insert_exclusive_deps(selected_options, stats):
+def insert_exclusive_deps(selected_options):
+
     # ds1: source_ds
     # ds2: test_ds
     inter_fds_dict = dict()
@@ -480,8 +488,7 @@ def insert_exclusive_deps(selected_options, stats):
             if (ds1 != ds2):
                 print "Confronto source:{} con  test:{}".format(ds1, ds2)
                 # dipendenze esclusive di ds1 che non sono in ds2
-                ds1_id = \
-                engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
+                ds1_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
                 if "fds" not in final_dep_results[re.sub('[(){}<>]', '',
                                                          ds1)].keys():  # controllo su fds, ma poi rimepio anche le uccs (e ini futuro le altre)
                     # Dato che confronto tutti i ds selezionati. Un certo ds sarà confrontato con
@@ -496,11 +503,10 @@ def insert_exclusive_deps(selected_options, stats):
                     ds1_deps = [r[0] for r in ds1_deps]
                     #                     print "ds1_deps: {}".format(ds1_deps)
                     deps = recreate_deps(ds1_deps)
-                    final_dep_results[re.sub('[(){}<>]', '', ds1)]["fds"] = deps_screm(deps, ds1, stats)["fds"]
+                    final_dep_results[re.sub('[(){}<>]', '', ds1)]["fds"] = deps_screm(deps, ds1)["fds"]
                     final_dep_results[re.sub('[(){}<>]', '', ds1)]["uccs"] = deps["uccs"]
                     # pulilzia
-                ds2_id = \
-                engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds2)).fetchone()[0]
+                ds2_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds2)).fetchone()[0]
                 if "fds" not in final_dep_results[re.sub('[(){}<>]', '', ds2)].keys():
                     print "Non ho ancora inserito {} in final_dep_results".format(ds2)
                     ds2_deps = engine.execute("""SELECT dependencies_idDependencies
@@ -508,7 +514,7 @@ def insert_exclusive_deps(selected_options, stats):
                                       WHERE datasets_idDataset = {}""".format(ds2_id))
                     ds2_deps = [r[0] for r in ds2_deps]
                     deps = recreate_deps(ds2_deps)
-                    final_dep_results[re.sub('[(){}<>]', '', ds2)]["fds"] = deps_screm(deps, ds2, stats)["fds"]
+                    final_dep_results[re.sub('[(){}<>]', '', ds2)]["fds"] = deps_screm(deps, ds2)["fds"]
                     final_dep_results[re.sub('[(){}<>]', '', ds2)]["uccs"] = deps["uccs"]
                     # A questo punto ho le liste di oggetti FD ( e UCC)
                     # Pulizia
@@ -521,6 +527,9 @@ def insert_exclusive_deps(selected_options, stats):
                 names_string = '_'.join([i for i in names])
                 print "names_string: {}".format(names_string)
                 if names_string not in inter_fds_dict.keys():
+                    # Lo faccio per riempire inter_fds che contiente le intersezioni tra coppie di dataset. Una volta
+                    # che ho calcolato l'intersezione tra A e B, quando avrò Be A non dovrò mica rifarlo.
+                    # Per questo faccio il sort e il join dei nome come chiave di inter_fds_dict
                     print "Non ce l'ho ancora nel dict"
                     inter_fds_dict[names_string] = intersection_some_ign("fds", final_dep_results, [ds1, ds2])
                 #                 print "inter_fds: {}".format(inter_fds)
@@ -557,33 +566,71 @@ def insert_exclusive_deps(selected_options, stats):
     #             engine.execute("INSERT IGNORE INTO Alps.Exclusive_deps (`datasets_test_id`, `datasets_source_id`, `dependencies_id`) VALUES {};".format(values))
 
 
-def insert_violations(selected_options):
+# def insert_violations(selected_options, stats, opened_csvs):
+def insert_violations(selected_options, opened_csvs):
+
     for ds1 in selected_options:
         violated_deps = []
         ds1_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
-        deps = engine.execute(
-            "SELECT dependencies_id FROM Alps.Exclusive_deps WHERE datasets_test_id = {}".format(ds1_id))
+        deps = engine.execute("SELECT dependencies_id FROM Alps.Exclusive_deps WHERE datasets_test_id = {}".format(ds1_id))
         # Adesso ho gli id delle dep violate da ds1
-        for dep in deps:
-            # Ho la lista degli attributi che compongono l'LHS
+        deps_recreated = recreate_deps([r[0] for r in deps])
+        deps_cleaned = []  # deps_recreated contiene tutte le dip non possedute da ds1, ma se il motivo sono
+        #  degli attributi nulli, allora le tolgo, non mi interessano
+        for i in deps_recreated["fds"]:
+            res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+            # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
+            if res != 100:
+                # provo su ds1 le dip esclusive di ds2,
+                # ma queste sono scremate sulla struttura di ds2. Quindi devo vedere se sono dip nulle per ds1
+                new_i = cp.deepcopy(i)
+                # print i
+                for x in i.lhs:
+                    # print "esamino {}".format(x)
+                    # print stats[ds1]["Percentage of Nulls"][attributes[x]]
+                    # print "-----"
+                    res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+                    # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[x]] == 100:
+                    if res == 100:
+                        # Le lhs possono contenere attributi che per ds1 sono nulli. Li tolgo dato che sono inutilil
+                        # Perché possono essere nulli? Nel ds in cui la dip valeva era tutto ok, ma ora la sto provando
+                        # su un altro dataset.
+                        new_i.lhs.remove(x)
+                # print new_i
+                if new_i not in deps_cleaned:
+                    deps_cleaned.append(new_i)
+                # Ho ricreato le dipendenze per cui ds1 ha delle violazioni e le ho appena scremate
+        for dep in deps_cleaned:
+            print "DEP: {}".format(dep)
+            a_list = dep.lhs
+            a_list.append(dep.rhs[0])
+            if len(a_list) > 1:
+                #devo fare il groupby
+                result = bing_bing_bong_new(a_list, ds1, opened_csvs)
+                if result:
+                    a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
+                    print "LHS: " + str(result.keys())
+                    print "RHS: " + str(a)
+                    print "------"
+            print "\n\n"
 
-            dep_type = \
-            engine.execute("SELECT `type` FROM Alps.Dependencies WHERE idDependencies = {}".format(dep[0])).fetchone()[
-                0]
-            if dep_type == "FD":
-                print "dipendenza violate da: {}".format(ds1)
-                print "dep_type: {}".format(dep_type)
-                lhs_list = engine.execute("""SELECT `string` FROM Alps.Hand_sides
-                                               WHERE idHand_sides = (SELECT idLHS FROM Alps.Dependencies
-                                                                    WHERE idDependencies = {})""".format(
-                    dep[0])).fetchone()[0]
-                rhs_list = engine.execute("""SELECT `string` FROM Alps.Hand_sides
-                                               WHERE idHand_sides = (SELECT idRHS FROM Alps.Dependencies
-                                                                    WHERE idDependencies = {})""".format(
-                    dep[0])).fetchone()[0]
-                print "lhs_list: {}".format(lhs_list)
-                print "rhs_list: {}".format(rhs_list)
-                a_list = lhs_list + rhs_list  # Credo non serva comunque
+        # for dep in deps:
+        #     # Ho la lista degli attributi che compongono l'LHS
+        #
+        #     dep_type = engine.execute("SELECT `type` FROM Alps.Dependencies WHERE idDependencies = {}".format(dep[0])).fetchone()[0]
+        #     if dep_type == "FD":
+        #         print "dipendenza violate da: {}".format(ds1)
+        #         print "dep_type: {}".format(dep_type)
+        #         lhs_list = engine.execute("""SELECT `string` FROM Alps.Hand_sides
+        #                                        WHERE idHand_sides = (SELECT idLHS FROM Alps.Dependencies
+        #                                                             WHERE idDependencies = {})""".format(dep[0])).fetchone()[0]
+        #         rhs_list = engine.execute("""SELECT `string` FROM Alps.Hand_sides
+        #                                        WHERE idHand_sides = (SELECT idRHS FROM Alps.Dependencies
+        #                                                             WHERE idDependencies = {})""".format(dep[0])).fetchone()[0]
+        #
+        #         print "lhs_list: {}".format(lhs_list)
+        #         print "rhs_list: {}".format(rhs_list)
+        #         a_list = lhs_list + rhs_list  # Credo non serva comunque
 
 
 # Lista di tutti i file nella seguente cartella
@@ -592,7 +639,7 @@ def files_in_dir(mypath_results):
     onlyfiles = [f for f in os.listdir(mypath_results) if os.path.isfile(os.path.join(mypath_results, f))]
     return onlyfiles
 
-
+# Inutile, le carico nell'Omni intanto
 def load_stats(stats_path):
     onlyfiles = files_in_dir(stats_path)
     for file in onlyfiles:
@@ -602,13 +649,19 @@ def load_stats(stats_path):
             stats.to_sql(file.spllit("_")[0] + "_stats", con=engine, if_exists="replace", index=False)
 
 
+# TODO una funzione per la pulizia nei noi delle parentesi, dato che se devo usarli con i dict danno errore
 if __name__ == "__main__":
     ds_names = load_ds_names_sql()
-    stats, a, b = load_results()  # Lo tengo solo perché non sono riuscito ancora ad inserire le stats nel db
+    print ds_names
+    # stats, a, b = load_results()  # Lo tengo solo perché non sono riuscito ancora ad inserire le stats nel db
     # print "ds_names: {}".format(ds_names)
+    csvpath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
+    opened_csvs = csvs(csvpath, ds_names)
     root = tkinter.Tk()
     menu = gui.my_gui(root, ds_names)
     root.mainloop()
     selected_options = menu.selected_options
-    insert_exclusive_deps(selected_options, stats)
-    # insert_violations(selected_options)
+    # insert_exclusive_deps(selected_options, stats)
+    insert_exclusive_deps(selected_options)
+    # insert_violations(selected_options, stats, opened_csvs)
+    insert_violations(selected_options, opened_csvs)

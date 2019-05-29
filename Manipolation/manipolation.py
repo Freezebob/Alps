@@ -94,7 +94,7 @@ dtypes_dict = {'id': int,
  'address': str,
  'city': str,
  'citycode': str}
-# PRECISAZIONE: per dipendenza nulla intendo dip che ha attributinulli in lhs o rhs
+# PRECISAZIONE: per dipendenza nulla intendo dip che ha attributi nulli in lhs o rhs
 
 # Le variabili stats, ds_names, final_dep_results calcolate nel package Omni mi servono anche qui. Per non dover rieseguire tutto le tengo salvate con pickle
 def load_results():
@@ -343,7 +343,7 @@ def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
                         # print "controllo {} di {} su {}".format(i, ds2, ds1)
                         if stats[ds1]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
 #                           provo su ds1 le dip esclusive di ds2,
-#                            ma queste sono scremate sulla struttura di ds1. Quindi devo vedere se sono dip nulle per ds2
+#                            ma queste sono scremate sulla struttura di ds2. Quindi devo vedere se sono dip nulle per ds1
                             new_i = cp.deepcopy(i)
                             # print i
                             for x in i.lhs:

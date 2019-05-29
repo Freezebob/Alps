@@ -56,6 +56,9 @@ dtypes_dict = {'id': int,
  'city': str,
  'citycode': str}
 
+engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps?charset=utf8', encoding='utf-8')
+conn = engine.connect()
+
 def omni(ds_path, result_name):
     print "ds_path usato dall'omni: {}".format(ds_path)
     responses = []
@@ -162,8 +165,7 @@ def hs_check(hs, table, conn):
 #   ds_names: contiene i nomi dei dataset analizzati
 def read_all(mypath, mypath_results):
     count_dict = collections.defaultdict(int)
-    engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
-    conn = engine.connect()
+    # engine era qui
     meta = MetaData()
     Hand_sides = Table('Hand_sides', meta, autoload=True, autoload_with=engine)
     Dependencies = Table('Dependencies', meta, autoload=True, autoload_with=engine)
@@ -184,7 +186,7 @@ def read_all(mypath, mypath_results):
     #     values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
     #     engine.execute("INSERT IGNORE INTO Alps.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
     #     engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
-    # df.to_sql('users', con=engine)
+    # # df.to_sql('users', con=engine)
 
     final_dep_results = collections.defaultdict(dict)
     stats = {}
@@ -197,45 +199,48 @@ def read_all(mypath, mypath_results):
         ds_name = '_'.join(f.split("_")[0:2]) # ora i nomi non sono più orcid_SPIDER, ma organizations_orcid_SPIDER, quindi tagliare sul primo '_' non funziona più
         ds_name_dict = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict  # Ho aggiunto _dict perché lo uso solo per riemmpire il dizionario, che non userò più a breve. Lo tengo comunque per non inncasinare  il codice
         if "stats" not in f:
-            print "file analizzato: {}".format(f)
-            attributes, dependencies = deps_classe.read_dep(mypath_results + f)
-
-            # Problema: i singoli insert sono LENTI. Provo ad eseguirne tanti assieme
-            # for dep in dependencies:
-            #     grbg = hs_check(dep.lhs, Hand_sides, conn) # Controllo se è già in Hand_sides
-            #     grbg = hs_check(dep.rhs, Hand_sides, conn) # Controllo se è già in Hand_sides
+            print "ciao"
+            # Ho commentato tutto l'if perché voglio solo testare la parte delle stats
+            # print "file analizzato: {}".format(f)
+            # attributes, dependencies = deps_classe.read_dep(mypath_results + f)
             #
-            #     idlhs = hs_check(dep.lhs, Hand_sides, conn) # Uso differente rispetto a prima, lo uso per recuperare l'id dell'hs
-            #     idrhs = hs_check(dep.rhs, Hand_sides, conn) # Uso differente rispetto a prima, lo uso per recuperare l'id dell'hs
-            #     if type(dep) is deps_classe.FD:
-            #         type_d = "FD"
-            #     elif type(dep) is deps_classe.IND:
-            #         type_d = "IND"
-            #     elif type(dep) is deps_classe.UCC:
-            #         type_d = "UCC"
-            #     elif type(dep) is deps_classe.ORD:
-            #         type_d = "ORD"
-            #     ins = Dependencies.insert().values(type=type_d, idLHS=idlhs, idRHS=idrhs)
-            #     conn.execute(ins)
-
-            # FUNZIONA ed è quello che uso. L'ho commentato solo perché voglio testare la seconda parte sulla tabella Dependencies senza rieseguire questo
-            # values = ""
-            # for dep in dependencies:
-            #     if type(dep) is deps_classe.FD:
-            #         # print "FD"
-            #         # print "Values prima: {}".format(values)
-            #         if dep.lhs:
-            #             values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
-            #         else:
-            #             values += "('NULL'), "
-            #         values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
-            #         print "Values dopo {}".format(values)
-            # values = values[:-2]
-            # if values:
-            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
-
-
-            # Commento momentaneo
+            # # Problema: i singoli insert sono LENTI. Provo ad eseguirne tanti assieme
+            # # for dep in dependencies:
+            # #     grbg = hs_check(dep.lhs, Hand_sides, conn) # Controllo se è già in Hand_sides
+            # #     grbg = hs_check(dep.rhs, Hand_sides, conn) # Controllo se è già in Hand_sides
+            # #
+            # #     idlhs = hs_check(dep.lhs, Hand_sides, conn) # Uso differente rispetto a prima, lo uso per recuperare l'id dell'hs
+            # #     idrhs = hs_check(dep.rhs, Hand_sides, conn) # Uso differente rispetto a prima, lo uso per recuperare l'id dell'hs
+            # #     if type(dep) is deps_classe.FD:
+            # #         type_d = "FD"
+            # #     elif type(dep) is deps_classe.IND:
+            # #         type_d = "IND"
+            # #     elif type(dep) is deps_classe.UCC:
+            # #         type_d = "UCC"
+            # #     elif type(dep) is deps_classe.ORD:
+            # #         type_d = "ORD"
+            # #     ins = Dependencies.insert().values(type=type_d, idLHS=idlhs, idRHS=idrhs)
+            # #     conn.execute(ins)
+            #
+            # # FUNZIONA ed è quello che uso. L'ho commentato solo perché voglio testare la seconda parte sulla tabella Dependencies senza rieseguire questo
+            # # VECCHIO
+            # # values = ""
+            # # for dep in dependencies:
+            # #     if type(dep) is deps_classe.FD:
+            # #         # print "FD"
+            # #         # print "Values prima: {}".format(values)
+            # #         if dep.lhs:
+            # #             values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+            # #         else:
+            # #             values += "('NULL'), "
+            # #         values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+            # #         print "Values dopo {}".format(values)
+            # # values = values[:-2]
+            # # if values:
+            # #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+            #
+            #
+            # # Commento momentaneo
             # values = ""
             # for dep in dependencies:
             #     print "controllo la dep: {}".format(dep)
@@ -255,99 +260,122 @@ def read_all(mypath, mypath_results):
             # values = values[:-2]
             # if values:
             #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
-
-            # Devo ripetere il ciclo dep purtroppo. Vediamo più avanti se c'è un'alternativa
-            selects_dependencies = ""
-            selects_datasets = ""
-            for dep in dependencies:
-                if type(dep) is deps_classe.FD:
-                    dep_type = "FD"
-                elif type(dep) is deps_classe.IND:
-                    dep_type = "IND"
-                elif type(dep) is deps_classe.UCC:
-                    dep_type = "UCC"
-
-                if dep.lhs:
-                    tmp_lhs = str(dep.lhs).replace('[', '').replace(']', '')
-                else:
-                    tmp_lhs = "NULL"
-                if dep.rhs:
-                    tmp_rhs = str(dep.rhs).replace('[', '').replace(']', '')
-                else:
-                    tmp_rhs = "NULL"
-                selects_dependencies += """("{}",
-                                           (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"),
-                                           (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), """.format(dep_type, tmp_lhs, tmp_rhs)
-
-                selects_datasets += """((SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"),
-                                        (SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}"
-                                            AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
-                                            AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))
-                                       ), """.format(ds_name, dep_type, tmp_lhs, tmp_rhs)
-                # print "Selects_dependencies dopo: {}".format(selects_dependencies)
-                # print "\n\n"
-                # print "Selects_datasets dopo {}".format(selects_datasets)
-            selects_dependencies = selects_dependencies[:-2]
-            selects_datasets = selects_datasets[:-2]
-            print "Selects_datasets dopo {}".format(selects_datasets)
-            # print "\n\n\n\n"
-            # print "INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies)
-            if selects_dependencies:
-                engine.execute("INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies))
-            if selects_datasets:
-                engine.execute("INSERT IGNORE Alps.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
-	        # SELECT "FD", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'10'"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'11'");
-
-
-
-            # PROBLEMA: dato che in una singola insert vado a mettere molti valori non posso sapere quelle che flliranno perché già presenti
-            # quindi i loro id andranno "sprecati", generando in certi casi dei buchi tra un id e il successivo.
-            # Se eseguissi un insert alla volta potrei "riciclare" gliid non usati, ma così non so come fare.
-            # Ho comunue a disposizione gli id che mi servono per inserire una tupla nella tabella Dependencies.
-            # E invece no, questo discorso vale solo per le tuple non presenti. Per quelle già memorizzate devo comunque fare un select
-            # values = ""
+            #
+            # # Devo ripetere il ciclo dep purtroppo. Vediamo più avanti se c'è un'alternativa
+            # selects_dependencies = ""
+            # selects_datasets = ""
             # for dep in dependencies:
             #     if type(dep) is deps_classe.FD:
-            #         count_dict["lhs"] = count_dict["rhs"] + 1 # rhs al primo ciclo varrà 0
-            #         count_dict["rhs"] = count_dict["lhs"] + 1
-            #         # print "FD"
-            #         # print "Values prima: {}".format(values)
-            #         if dep.lhs:
-            #             el = str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
-            #             el = "(" + str(count_dict["lhs"]) + ", " + el[1:]
-            #             # values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
-            #             values = el
-            #         else:
-            #             values += "(" + str(count_dict["lhs"]) + ", " + "'NULL'), "
+            #         dep_type = "FD"
+            #     elif type(dep) is deps_classe.IND:
+            #         dep_type = "IND"
+            #     elif type(dep) is deps_classe.UCC:
+            #         dep_type = "UCC"
             #
-            #         el = str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
-            #         el = "(" + str(count_dict["rhs"]) + ", " + el[1:]
-            #         # values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
-            #         values += el
-            #         print "Values dopo {}".format(values)
-            # values = values[:-2]
-            # # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
-            # # print f
-            # # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
-            # if values:
-            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
-
-            if ds_name_dict not in ds_names:
-                ds_names.append(ds_name_dict)
-            #print f.split("_")
-            dep_type = f.split("_")[-1] # idem per il tipo di dipendenza
-            final_dep_results[ds_name_dict][dep_type] =  dependencies
+            #     if dep.lhs:
+            #         tmp_lhs = str(dep.lhs).replace('[', '').replace(']', '')
+            #     else:
+            #         tmp_lhs = "NULL"
+            #     if dep.rhs:
+            #         tmp_rhs = str(dep.rhs).replace('[', '').replace(']', '')
+            #     else:
+            #         tmp_rhs = "NULL"
+            #     selects_dependencies += """("{}",
+            #                                (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"),
+            #                                (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), """.format(dep_type, tmp_lhs, tmp_rhs)
+            #
+            #     selects_datasets += """((SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"),
+            #                             (SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}"
+            #                                 AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
+            #                                 AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))
+            #                            ), """.format(ds_name, dep_type, tmp_lhs, tmp_rhs)
+            #     # print "Selects_dependencies dopo: {}".format(selects_dependencies)
+            #     # print "\n\n"
+            #     # print "Selects_datasets dopo {}".format(selects_datasets)
+            # selects_dependencies = selects_dependencies[:-2]
+            # selects_datasets = selects_datasets[:-2]
+            # print "Selects_datasets dopo {}".format(selects_datasets)
+            # # print "\n\n\n\n"
+            # # print "INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies)
+            # if selects_dependencies:
+            #     engine.execute("INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies))
+            # if selects_datasets:
+            #     engine.execute("INSERT IGNORE Alps.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
+	        # # SELECT "FD", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'10'"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'11'");
+            #
+            #
+            #
+            # # PROBLEMA: dato che in una singola insert vado a mettere molti valori non posso sapere quelle che flliranno perché già presenti
+            # # quindi i loro id andranno "sprecati", generando in certi casi dei buchi tra un id e il successivo.
+            # # Se eseguissi un insert alla volta potrei "riciclare" gliid non usati, ma così non so come fare.
+            # # Ho comunue a disposizione gli id che mi servono per inserire una tupla nella tabella Dependencies.
+            # # E invece no, questo discorso vale solo per le tuple non presenti. Per quelle già memorizzate devo comunque fare un select
+            # # values = ""
+            # # for dep in dependencies:
+            # #     if type(dep) is deps_classe.FD:
+            # #         count_dict["lhs"] = count_dict["rhs"] + 1 # rhs al primo ciclo varrà 0
+            # #         count_dict["rhs"] = count_dict["lhs"] + 1
+            # #         # print "FD"
+            # #         # print "Values prima: {}".format(values)
+            # #         if dep.lhs:
+            # #             el = str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+            # #             el = "(" + str(count_dict["lhs"]) + ", " + el[1:]
+            # #             # values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+            # #             values = el
+            # #         else:
+            # #             values += "(" + str(count_dict["lhs"]) + ", " + "'NULL'), "
+            # #
+            # #         el = str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+            # #         el = "(" + str(count_dict["rhs"]) + ", " + el[1:]
+            # #         # values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+            # #         values += el
+            # #         print "Values dopo {}".format(values)
+            # # values = values[:-2]
+            # # # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
+            # # # print f
+            # # # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
+            # # if values:
+            # #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
+            #
+            # if ds_name_dict not in ds_names:
+            #     ds_names.append(ds_name_dict)
+            # #print f.split("_")
+            # dep_type = f.split("_")[-1] # idem per il tipo di dipendenza
+            # final_dep_results[ds_name_dict][dep_type] =  dependencies
         else:
             #stats[f.split("_")[0]] = read_stats(mypath + f)
             #print mypath + f
             stats[ds_name_dict] = deps_classe.read_stats(mypath_results + f)
+            stats_df = stats[ds_name_dict]
+            for col in ["Avg.", "Max", "Min", "Nulls", "Number of Distinct Values", "Number of Tuples", "Percentage of Distinct Values", "Percentage of Nulls", "Standard Deviation"]:
+                stats_df[col] = stats_df[col].astype(float)
+            # stats_df["Avg."] = stats_df["Avg."].astype(float)
+            # stats_df["Max"] = stats_df["Max"].astype(float)
+            # stats_df["Min"] = stats_df["Min"].astype(float)
+            # stats_df["Nulls"] = stats_df["Nulls"].astype(float)
+            # stats_df["Number of Distinct Values"] = stats_df["Number of Distinct Values"].astype(float)
+            # stats_df["Number of Tuples"] = stats_df["Number of Tuples"].astype(float)
+            # stats_df["Percentage of Distinct Values"] = stats_df["Percentage of Distinct Values"].astype(float)
+            # stats_df["Percentage of Nulls"] = stats_df["Percentage of Nulls"].astype(float)
+            # stats_df["Standard Deviation"] = stats_df["Standard Deviation"].astype(float)
+            # stats_df["Frequency Of Top 10 Frequent Items"] = stats_df["Frequency Of Top 10 Frequent Items"].astype(unicode)
+            stats_df = stats_df.drop("columnIdentifier", axis=1)
+            stats_df = stats_df.reset_index()
+            for col in ["Frequency Of Top 10 Frequent Items", "Top 10 frequent items"]:
+                stats_df[col] = stats_df[col].astype(unicode)
+            stats_df = stats_df.replace('[]', np.NaN)
+
+            # Il nome per le tabelle delle stats è solo una parte dell'originale perhé assieme alla parola "stats_"
+            # diventa troppo lungo superando il limite di 64 char
+            stats_df.to_sql("stats_"+f.split("_")[1], con=engine, if_exists="replace", index=False, dtype={"Frequency Of Top 10 Frequent Items": sqlalchemy.dialects.mysql.MEDIUMTEXT,
+                                                                                                           "Top 10 frequent items": sqlalchemy.dialects.mysql.MEDIUMTEXT})
             # stats[ds_name_dict].to_sql(f.split("_")[0]+"_stats", con=engine, if_exists="replace", index=False)
 
     return (stats, ds_names, final_dep_results)
 
 
 def handle_deps(mypath, mypath_results):
-    responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
+    # responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
     stats, ds_names, final_dep_results = read_all(mypath, mypath_results)
     return stats, ds_names, final_dep_results
 
