@@ -472,7 +472,9 @@ if __name__ == "__main__":
         else:
             n = 0
         ds_slides[ds] = split(n, 4)
-
+    # es
+    # {'organizations_alpsv20.csv': [[0, 365], [365, 729], [729, 1093], [1093, 1457]],
+    #  'organizations_alpsv20Dedup.csv': [[0, 211], [211, 422], [422, 633], [633, 844]]}
     processes = []
     dict_process = {}
     l_d_p = [] #list_dict_process
@@ -481,6 +483,11 @@ if __name__ == "__main__":
         for ds in ds_slides.keys():
             dict_process[ds] = ds_slides[ds][i]
         l_d_p.append(cp.deepcopy(dict_process))
+        # es di l_d_p
+         # [{'organizations_alpsv20.csv': [0, 365], 'organizations_alpsv20Dedup.csv': [0, 211]},
+         #           {'organizations_alpsv20.csv': [365, 729], 'organizations_alpsv20Dedup.csv': [211, 422]},
+         #           {'organizations_alpsv20.csv': [729, 1093], 'organizations_alpsv20Dedup.csv': [422, 633]},
+         #           {'organizations_alpsv20.csv': [1093, 1457], 'organizations_alpsv20Dedup.csv': [633, 844]}]
         #print l_d_p[i]
     for i in l_d_p:
 #         print "slice per processo: {}".format(i)

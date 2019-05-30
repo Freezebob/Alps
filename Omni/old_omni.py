@@ -56,9 +56,6 @@ dtypes_dict = {'id': int,
  'city': str,
  'citycode': str}
 
-engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps?charset=utf8', encoding='utf-8') # , fast_executemany=True non funziona
-conn = engine.connect()
-
 def omni(ds_path, result_name):
     print "ds_path usato dall'omni: {}".format(ds_path)
     responses = []
@@ -165,7 +162,8 @@ def hs_check(hs, table, conn):
 #   ds_names: contiene i nomi dei dataset analizzati
 def read_all(mypath, mypath_results):
     count_dict = collections.defaultdict(int)
-    # engine era qui
+    engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
+    conn = engine.connect()
     meta = MetaData()
     Hand_sides = Table('Hand_sides', meta, autoload=True, autoload_with=engine)
     Dependencies = Table('Dependencies', meta, autoload=True, autoload_with=engine)
@@ -175,23 +173,23 @@ def read_all(mypath, mypath_results):
     # Dovrei già avercea nel notebook communque
 
     # COMMENTO MOMENTANEO
-    onlyfiles = files_in_dir(mypath)
-    engine.execute("USE Alps")
-    for ds in onlyfiles:
-        file_name = mypath + ds
-        print file_name
-        df = pd.read_csv(file_name)
-        df.to_sql(ds, con=engine, if_exists="replace", dtype={'children': sqlalchemy.dialects.mysql.MEDIUMTEXT}, index=False, chunksize=2000)
-        #values = '{}, "{}", {}, {}'.format(i, ds, "NULL", "NULL")
-        values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
-        engine.execute("INSERT IGNORE INTO Alps.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
-        engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
-    # # df.to_sql('users', con=engine)
+    # onlyfiles = files_in_dir(mypath)
+    # engine.execute("USE Alps")
+    # for ds in onlyfiles:
+    #     file_name = mypath + ds
+    #     print file_name
+    #     df = pd.read_csv(file_name)
+    #     df.to_sql(ds, con=engine, if_exists="replace", dtype={'children': sqlalchemy.dialects.mysql.MEDIUMTEXT}, index=False)
+    #     #values = '{}, "{}", {}, {}'.format(i, ds, "NULL", "NULL")
+    #     values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
+    #     engine.execute("INSERT IGNORE INTO Alps.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
+    #     engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
+    # df.to_sql('users', con=engine)
 
-    # final_dep_results = collections.defaultdict(dict)
-    # stats = {}
+    final_dep_results = collections.defaultdict(dict)
+    stats = {}
     attr_read = False
-    # ds_names = []
+    ds_names = []
     onlyfiles = files_in_dir(mypath_results)
     for f in onlyfiles:
         #print f.split("_")[0]
@@ -199,8 +197,6 @@ def read_all(mypath, mypath_results):
         ds_name = '_'.join(f.split("_")[0:2]) # ora i nomi non sono più orcid_SPIDER, ma organizations_orcid_SPIDER, quindi tagliare sul primo '_' non funziona più
         ds_name_dict = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict  # Ho aggiunto _dict perché lo uso solo per riemmpire il dizionario, che non userò più a breve. Lo tengo comunque per non inncasinare  il codice
         if "stats" not in f:
-            print "ciao"
-            # Ho commentato tutto l'if perché voglio solo testare la parte delle stats
             print "file analizzato: {}".format(f)
             attributes, dependencies = deps_classe.read_dep(mypath_results + f)
 
@@ -223,7 +219,6 @@ def read_all(mypath, mypath_results):
             #     conn.execute(ins)
 
             # FUNZIONA ed è quello che uso. L'ho commentato solo perché voglio testare la seconda parte sulla tabella Dependencies senza rieseguire questo
-            # VECCHIO
             # values = ""
             # for dep in dependencies:
             #     if type(dep) is deps_classe.FD:
@@ -241,25 +236,25 @@ def read_all(mypath, mypath_results):
 
 
             # Commento momentaneo
-            values = ""
-            for dep in dependencies:
-                print "controllo la dep: {}".format(dep)
-                # if dep.lhs[0] != 0:
-                if dep.lhs:
-                    values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
-                else:
-                    # values += "('NULL'), "
-                    values += "('NULL'), "
-                print dep.lhs
-                print dep.rhs
-                if dep.rhs:
-                    values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
-                else:
-                    values += "('NULL'), "
-                print "Values dopo {}".format(values)
-            values = values[:-2]
-            if values:
-                engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+            # values = ""
+            # for dep in dependencies:
+            #     print "controllo la dep: {}".format(dep)
+            #     # if dep.lhs[0] != 0:
+            #     if dep.lhs:
+            #         values += str(dep.lhs).replace('[', '("').replace(']', '")') + ", "
+            #     else:
+            #         # values += "('NULL'), "
+            #         values += "('NULL'), "
+            #     print dep.lhs
+            #     print dep.rhs
+            #     if dep.rhs:
+            #         values += str(dep.rhs).replace('[', '("').replace(']', '")') + ", "
+            #     else:
+            #         values += "('NULL'), "
+            #     print "Values dopo {}".format(values)
+            # values = values[:-2]
+            # if values:
+            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
 
             # Devo ripetere il ciclo dep purtroppo. Vediamo più avanti se c'è un'alternativa
             selects_dependencies = ""
@@ -337,62 +332,30 @@ def read_all(mypath, mypath_results):
             # if values:
             #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
 
-            # Commentato perché non uso più ds_name_dict
-            # if ds_name_dict not in ds_names:
-            #     ds_names.append(ds_name_dict)
-
+            if ds_name_dict not in ds_names:
+                ds_names.append(ds_name_dict)
             #print f.split("_")
-
-            # Commeno perché salvo tutto sul DB, non devo tenermi final_dep_results (in mannipolation_sql per ora me lo ricreo però)
-            # dep_type = f.split("_")[-1] # idem per il tipo di dipendenza
-            # final_dep_results[ds_name_dict][dep_type] = dependencies
+            dep_type = f.split("_")[-1] # idem per il tipo di dipendenza
+            final_dep_results[ds_name_dict][dep_type] =  dependencies
         else:
             #stats[f.split("_")[0]] = read_stats(mypath + f)
             #print mypath + f
-
-            # Commento perché non uso più stats
-            #stats[ds_name_dict] = deps_classe.read_stats(mypath_results + f)
-            stats_df = deps_classe.read_stats(mypath_results + f)
-            for col in ["Avg.", "Max", "Min", "Nulls", "Number of Distinct Values", "Number of Tuples", "Percentage of Distinct Values", "Percentage of Nulls", "Standard Deviation"]:
-                stats_df[col] = stats_df[col].astype(float)
-            # stats_df["Avg."] = stats_df["Avg."].astype(float)
-            # stats_df["Max"] = stats_df["Max"].astype(float)
-            # stats_df["Min"] = stats_df["Min"].astype(float)
-            # stats_df["Nulls"] = stats_df["Nulls"].astype(float)
-            # stats_df["Number of Distinct Values"] = stats_df["Number of Distinct Values"].astype(float)
-            # stats_df["Number of Tuples"] = stats_df["Number of Tuples"].astype(float)
-            # stats_df["Percentage of Distinct Values"] = stats_df["Percentage of Distinct Values"].astype(float)
-            # stats_df["Percentage of Nulls"] = stats_df["Percentage of Nulls"].astype(float)
-            # stats_df["Standard Deviation"] = stats_df["Standard Deviation"].astype(float)
-            # stats_df["Frequency Of Top 10 Frequent Items"] = stats_df["Frequency Of Top 10 Frequent Items"].astype(unicode)
-            stats_df = stats_df.drop("columnIdentifier", axis=1)
-            stats_df = stats_df.reset_index()
-            for col in ["Frequency Of Top 10 Frequent Items", "Top 10 frequent items"]:
-                stats_df[col] = stats_df[col].astype(unicode)
-            stats_df = stats_df.replace('[]', np.NaN)
-
-            # Il nome per le tabelle delle stats è solo una parte dell'originale perhé assieme alla parola "stats_"
-            # diventa troppo lungo superando il limite di 64 char
-            stats_df.to_sql("stats_"+f.split("_")[1], con=engine, if_exists="replace", index=False, dtype={"Frequency Of Top 10 Frequent Items": sqlalchemy.dialects.mysql.MEDIUMTEXT,
-                                                                                                           "Top 10 frequent items": sqlalchemy.dialects.mysql.MEDIUMTEXT})
+            stats[ds_name_dict] = deps_classe.read_stats(mypath_results + f)
             # stats[ds_name_dict].to_sql(f.split("_")[0]+"_stats", con=engine, if_exists="replace", index=False)
 
-    # return (stats, ds_names, final_dep_results)
-    return "Done"
+    return (stats, ds_names, final_dep_results)
 
 
 def handle_deps(mypath, mypath_results):
     # responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
-    # stats, ds_names, final_dep_results = read_all(mypath, mypath_results)
-    resp = read_all(mypath, mypath_results)
-    return resp
+    stats, ds_names, final_dep_results = read_all(mypath, mypath_results)
+    return stats, ds_names, final_dep_results
 
 if __name__ == "__main__":
     # mypath = sys.argv[1]
     # mypath_results = sys.argv[2]
     mypath = "/home/marco/Scrivania/dep/backend/WEB-INF/classes/inputData/"
     mypath_results = "/home/marco/Scrivania/dep/results/"
-    # stats, ds_names_dict, final_dep_results = handle_deps(mypath, mypath_results)
-    resp = handle_deps(mypath, mypath_results)
-    # with open("objs.pkl", "w") as f:
-    #     pickle.dump([stats, ds_names_dict, final_dep_results], f)
+    stats, ds_names_dict, final_dep_results = handle_deps(mypath, mypath_results)
+    with open("objs.pkl", "w") as f:
+        pickle.dump([stats, ds_names_dict, final_dep_results], f)

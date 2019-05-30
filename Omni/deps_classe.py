@@ -41,7 +41,7 @@ class DEP(object):
 
     def __ge__(self, other): #Se other.lhs è un sottinsieme di self.rhs
         #print "uso ge"
-        return ((set(other.lhs) <= set(slef.lhs)) and (set(self.rhs) == set(other.rhs)))
+        return ((set(other.lhs) <= set(self.lhs)) and (set(self.rhs) == set(other.rhs)))
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -141,16 +141,17 @@ def read_stats(file_name):
     ris.index = ris["columnIdentifier"]
     return ris
 
-def read_stats_sql(file_name):
-    #with open('ris', 'r') as myfile:
-    file_path = "/home/marco/Scrivania/dep/results/" + file_name
-    with open(file_path, 'r') as myfile:
-        data=myfile.read().replace('\n', '')
-    ris = pd.DataFrame()
-    for obj in metanome_api.decode_stacked(data):
-        tmp = pd.DataFrame.from_dict(obj["statisticMap"])
-        tmp["columnIdentifier"] = obj["columnCombination"]["columnIdentifiers"][0]["columnIdentifier"]
-        stats.to_sql(file_name, con=engine, if_exists="replace", index=False)
+# Inutilizzata, ho già risoolto in manipolation_sql
+# def read_stats_sql(file_name):
+#     #with open('ris', 'r') as myfile:
+#     file_path = "/home/marco/Scrivania/dep/results/" + file_name
+#     with open(file_path, 'r') as myfile:
+#         data=myfile.read().replace('\n', '')
+#     ris = pd.DataFrame()
+#     for obj in metanome_api.decode_stacked(data):
+#         tmp = pd.DataFrame.from_dict(obj["statisticMap"])
+#         tmp["columnIdentifier"] = obj["columnCombination"]["columnIdentifiers"][0]["columnIdentifier"]
+#         stats.to_sql(file_name, con=engine, if_exists="replace", index=False)
 
 
 def read_uccs(file_name):

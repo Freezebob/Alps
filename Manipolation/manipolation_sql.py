@@ -304,6 +304,7 @@ def exclusive_d(names, datasets_dict, final_dep_results, inter_fds):
 
 
 # Il mio groupby
+# TODO: dovrei farne una versione sql
 def bing_bing_bong_new(a_list, ds, opened_csvs):
     print "Biiiiing"
     #     start = time.time()
@@ -314,7 +315,29 @@ def bing_bing_bong_new(a_list, ds, opened_csvs):
     result = collections.defaultdict(lambda: collections.defaultdict(int))
 
     for row in dict_df_data:
-        result[str(row[:-1])][row[-1]] += 1
+        result[str(row[:-1])][row[-1]] += 1 # Prima chiave LHS, seconda chiave RHS, valore conteggio di quel RHS
+    for key in result.keys():
+        if len(result[key]) == 1:
+            result.pop(key, None)
+    return result
+
+# Il mio groupby
+# TODO: dovrei farne una versione sql
+def modified_bing_bing_bong_new(a_list, ds, opened_csvs):
+    print "Biiiiing"
+    a_list = [1] + a_list
+    print "a_list: {}".format(a_list)
+    #     start = time.time()
+    asd = "ciao"
+    result = collections.defaultdict(lambda: collections.defaultdict(int))
+    result_id_list = collections.defaultdict(lambda: collections.defaultdict(int))
+
+    projection_df = opened_csvs[re.sub('[(){}<>]', '', ds)][[attributes[i] for i in a_list]]
+    for row in projection_df.itertuples(index=False):
+        result[str(row[1:-1])][row[-1]] += 1
+        # creo un secondo dict con le stesse chiavi e tiene la lista degli id delle righe. Posso far senza di result.
+        # Se conto gli id (row[0]) ottengo il count delle violazioni
+        result_id_list[str(row[1:-1])][row[-1]].append(row[0])
     for key in result.keys():
         if len(result[key]) == 1:
             result.pop(key, None)
@@ -476,12 +499,34 @@ def recreate_deps(deps_ids):
     return deps
 
 
+def process_function_sql(d_p, selected_options, deps_cleaned_dict, opened_csvs):
+    # es di d_p: {'organizations_alpsv20.csv': [0, 365], 'organizations_alpsv20Dedup.csv': [0, 211]}
+    for ds in selected_options:
+        if d_p[ds]:
+            l1 = d_p[ds][0]
+            l2 = d_p[ds][1]
+            for dep in deps_cleaned_dict[ds]["fds"][l1:l2]:
+                print "DEP: {}".format(dep)
+                a_list = dep.lhs
+                a_list.append(dep.rhs[0])
+                if len(a_list) > 1:
+                    # devo fare il groupby
+                    result = modified_bing_bing_bong_new(a_list, ds1, opened_csvs)
+                    if result:
+                        a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
+                        print "LHSs: " + str(result.keys())
+                        print "RHSs: " + str(a)
+                        print "------"
+                print "\n\n"
+
 # def insert_exclusive_deps(selected_options, stats):
 def insert_exclusive_deps(selected_options):
 
     # ds1: source_ds
     # ds2: test_ds
     inter_fds_dict = dict()
+    # Ho tolto il dict stats, il prossimo sarebbe di togliere final_dep_results, ma per ora è troppo comodo
+    # Penso d i tenerlo. Alla fine è fatto di dep costruite facendo interrogazioni sul DB per le loro componenti
     final_dep_results = collections.defaultdict(dict)
     for ds1 in selected_options:
         for ds2 in selected_options:
@@ -577,7 +622,7 @@ def insert_violations(selected_options, opened_csvs):
         deps_recreated = recreate_deps([r[0] for r in deps])
         deps_cleaned = []  # deps_recreated contiene tutte le dip non possedute da ds1, ma se il motivo sono
         #  degli attributi nulli, allora le tolgo, non mi interessano
-        for i in deps_recreated["fds"]:
+        for i in deps_recreated["fds"]:  #
             res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
             # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
             if res != 100:
@@ -609,8 +654,8 @@ def insert_violations(selected_options, opened_csvs):
                 result = bing_bing_bong_new(a_list, ds1, opened_csvs)
                 if result:
                     a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
-                    print "LHS: " + str(result.keys())
-                    print "RHS: " + str(a)
+                    print "LHSs: " + str(result.keys())
+                    print "RHSs: " + str(a)
                     print "------"
             print "\n\n"
 
@@ -649,7 +694,7 @@ def load_stats(stats_path):
             stats.to_sql(file.spllit("_")[0] + "_stats", con=engine, if_exists="replace", index=False)
 
 
-# TODO una funzione per la pulizia nei noi delle parentesi, dato che se devo usarli con i dict danno errore
+# TODO una funzione per la pulizia nei nomi delle parentesi, dato che se devo usarli con i dict danno errore
 if __name__ == "__main__":
     ds_names = load_ds_names_sql()
     print ds_names
@@ -664,4 +709,73 @@ if __name__ == "__main__":
     # insert_exclusive_deps(selected_options, stats)
     insert_exclusive_deps(selected_options)
     # insert_violations(selected_options, stats, opened_csvs)
-    insert_violations(selected_options, opened_csvs)
+
+    deps_cleaned_dict = collections.defaultdict(dict)
+    deps_cleaned_slices = collections.defaultdict(dict)
+
+    for ds1 in selected_options:
+        violated_deps = []
+        ds1_id = engine.execute("SELECT idDataset FROM Alps.Datasets where `name` = '{}'".format(ds1)).fetchone()[0]
+        deps = engine.execute("SELECT dependencies_id FROM Alps.Exclusive_deps WHERE datasets_test_id = {}".format(ds1_id))
+        # Adesso ho gli id delle dep violate da ds1
+        deps_recreated = recreate_deps([r[0] for r in deps])
+        deps_cleaned_tmp = []  # deps_recreated contiene tutte le dip non possedute da ds1, ma se il motivo sono
+        #  degli attributi nulli, allora le tolgo, non mi interessano
+        for i in deps_recreated["fds"]:  #
+            res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+            # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
+            if res != 100:
+                # provo su ds1 le dip esclusive di ds2,
+                # ma queste sono scremate sulla struttura di ds2. Quindi devo vedere se sono dip nulle per ds1
+                new_i = cp.deepcopy(i)
+                # print i
+                for x in i.lhs:
+                    # print "esamino {}".format(x)
+                    # print stats[ds1]["Percentage of Nulls"][attributes[x]]
+                    # print "-----"
+                    res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+                    # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[x]] == 100:
+                    if res == 100:
+                        # Le lhs possono contenere attributi che per ds1 sono nulli. Li tolgo dato che sono inutilil
+                        # Perché possono essere nulli? Nel ds in cui la dip valeva era tutto ok, ma ora la sto provando
+                        # su un altro dataset.
+                        new_i.lhs.remove(x)
+                # print new_i
+                if new_i not in deps_cleaned_tmp:
+                    deps_cleaned_tmp.append(new_i)
+                # Ho ricreato le dipendenze per cui ds1 ha delle violazioni e le ho appena scremate
+        deps_cleaned_dict[ds1]["fds"] = deps_cleaned_tmp
+        if deps_cleaned_tmp:
+            n = len(deps_cleaned_tmp)
+        else:
+            n = 0
+        deps_cleaned_slices[ds1]["fds"] = split(n, 4)
+        # es
+        # {'organizations_alpsv20.csv': [[0, 365], [365, 729], [729, 1093], [1093, 1457]],
+        #  'organizations_alpsv20Dedup.csv': [[0, 211], [211, 422], [422, 633], [633, 844]]}
+
+    processes = []
+    dict_process = {}
+    l_d_p = []
+    for i in xrange(4):
+        for ds in selected_options:
+            dict_process[ds] = deps_cleaned_slices[ds]["fds"][i]
+        l_d_p.append(cp.deepcopy(dict_process))
+        # es di l_d_p
+        # [{'organizations_alpsv20.csv': [0, 365], 'organizations_alpsv20Dedup.csv': [0, 211]},
+        #           {'organizations_alpsv20.csv': [365, 729], 'organizations_alpsv20Dedup.csv': [211, 422]},
+        #           {'organizations_alpsv20.csv': [729, 1093], 'organizations_alpsv20Dedup.csv': [422, 633]},
+        #           {'organizations_alpsv20.csv': [1093, 1457], 'organizations_alpsv20Dedup.csv': [633, 844]}]
+    for i in l_d_p:
+        print "Ad un processo passo: {}".format(i)
+        processes.append(mp.Process(target=process_function_sql, args=(i, selected_options, deps_cleaned_dict, opened_csvs)))
+    start = time.time()
+    for x in processes:
+        x.start()
+    # results = [output.get() for p in xrange(len(slides))]
+    for x in processes:
+        x.join()
+    end = time.time()
+    print(end - start)
+
+    # insert_violations(selected_options, opened_csvs)
