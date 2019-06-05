@@ -181,6 +181,7 @@ def read_all(mypath, mypath_results):
         file_name = mypath + ds
         print file_name
         df = pd.read_csv(file_name)
+        # cunchsize per non far impallare to_sql che altrimenti avrebbe troppo lavoro in una volta
         df.to_sql(ds, con=engine, if_exists="replace", dtype={'children': sqlalchemy.dialects.mysql.MEDIUMTEXT}, index=False, chunksize=2000)
         #values = '{}, "{}", {}, {}'.format(i, ds, "NULL", "NULL")
         values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file

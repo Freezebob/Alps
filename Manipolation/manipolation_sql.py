@@ -330,18 +330,21 @@ def modified_bing_bing_bong_new(a_list, ds, opened_csvs):
     #     start = time.time()
     asd = "ciao"
     result = collections.defaultdict(lambda: collections.defaultdict(int))
-    result_id_list = collections.defaultdict(lambda: collections.defaultdict(int))
+    result_id_list = collections.defaultdict(lambda: collections.defaultdict(list))
 
     projection_df = opened_csvs[re.sub('[(){}<>]', '', ds)][[attributes[i] for i in a_list]]
     for row in projection_df.itertuples(index=False):
-        result[str(row[1:-1])][row[-1]] += 1
+        # result[str(row[1:-1])][row[-1]] += 1
         # creo un secondo dict con le stesse chiavi e tiene la lista degli id delle righe. Posso far senza di result.
         # Se conto gli id (row[0]) ottengo il count delle violazioni
-        result_id_list[str(row[1:-1])][row[-1]].append(row[0])
-    for key in result.keys():
-        if len(result[key]) == 1:
-            result.pop(key, None)
-    return result
+        result_id_list[str(row[1:-1])][str(row[-1])].append(row[0])
+    # for key in result.keys():
+    #     if len(result[key]) == 1:
+    #         result.pop(key, None)
+    for key in result_id_list.keys():
+        if len(result_id_list[key]) == 1:
+            result_id_list.pop(key, None)
+    return result_id_list
 
 
 # def process_function(d_p, selected_options, exclusive_deps, stats, opened_csvs):
@@ -499,27 +502,70 @@ def recreate_deps(deps_ids):
     return deps
 
 
+def flatten_list(l):
+    flat_list = []
+    for sublist in l:
+        if type(sublist) == list:
+            for item in sublist:
+                flat_list.append(item)
+        else:
+            flat_list.append(sublist)
+    return flat_list
+
+
 def process_function_sql(d_p, selected_options, deps_cleaned_dict, opened_csvs):
     # es di d_p: {'organizations_alpsv20.csv': [0, 365], 'organizations_alpsv20Dedup.csv': [0, 211]}
+
+    # Ogni processo deve avere il proprio engine
+    engine_process = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps?charset=utf8', encoding='utf-8')
+    conn = engine_process.connect()
     for ds in selected_options:
         if d_p[ds]:
             l1 = d_p[ds][0]
             l2 = d_p[ds][1]
             for dep in deps_cleaned_dict[ds]["fds"][l1:l2]:
                 print "DEP: {}".format(dep)
-                a_list = dep.lhs
-                a_list.append(dep.rhs[0])
+                # SBAGLILATO così vado a modificare l'elemneto dep aggiungendo a lhs l'rhs. es da [1,2]->[3] vado a [1,2,3]->[3] perché sto usando append che è una funzione
+                # python si basa su puntatori agli oggetti, c'era spiegata questa cosa su stackoverflow, da trovare (il problema è l'aver usato append)
+                # a_list = dep.lhs
+                # a_list.append(dep.rhs[0])
+                a_list = dep.lhs + dep.rhs
                 if len(a_list) > 1:
                     # devo fare il groupby
                     result = modified_bing_bing_bong_new(a_list, ds1, opened_csvs)
                     if result:
-                        a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
-                        print "LHSs: " + str(result.keys())
-                        print "RHSs: " + str(a)
-                        print "------"
-                print "\n\n"
+                        tuple_list = []
+                        nested_list = [result.values()[i].values() for i in xrange(len(result))]
+                        flat_list = flatten_list(flatten_list(nested_list))
+                        tmp_lhs = str(dep.lhs).replace('[', '').replace(']', '')
+                        tmp_rhs = str(dep.rhs).replace('[', '').replace(']', '')
+                        ds_id = engine_process.execute('SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"'.format(ds)).fetchone()[0]
+                        print """SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}"
+                                            AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
+                                            AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")""".format("FD", tmp_lhs, tmp_rhs)
+                        dep_id = engine_process.execute("""SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}"
+                                            AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
+                                            AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")""".format("FD", tmp_lhs, tmp_rhs)).fetchone()[0]
+                        selects_violations = ''
+                        for val in flat_list:
+                            selects_violations += "({}, {}, {}), ".format(ds_id, dep_id, val)
+                        selects_violations = selects_violations[:-2]
+
+                        engine_process.execute("INSERT IGNORE INTO Alps.Violations (`datasets_id`, `dependencies_id`, `n_tuple`) VALUES {};".format(selects_violations))
+
+
+                        # Vecchio output, ora voglio solo alcune cose da inserire nella tabella Violations:
+                            # id dataset
+                            # id della dipendenza
+                            # id delle tuple che violano
+                        # a = [[result.values()[i].keys(), result.values()[i].values()] for i in xrange(len(result))]
+                        # print "LHSs: " + str(result.keys())
+                        # print "RHSs: " + str(a)
+                        # print "------"
+                        # print "\n\n"
 
 # def insert_exclusive_deps(selected_options, stats):
+# FUnzioinante, ma l'ho scomposta per farla girare in multiprocessing
 def insert_exclusive_deps(selected_options):
 
     # ds1: source_ds
@@ -722,6 +768,10 @@ if __name__ == "__main__":
         deps_cleaned_tmp = []  # deps_recreated contiene tutte le dip non possedute da ds1, ma se il motivo sono
         #  degli attributi nulli, allora le tolgo, non mi interessano
         for i in deps_recreated["fds"]:  #
+            if (i.lhs[-1] == i.rhs[0]):
+                print "A\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\n"
+            if (i.lhs == [8, 4, 26, 13]):
+                print "ciao"
             res = engine.execute("SELECT `Percentage of Nulls` FROM Alps.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
             # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[i.rhs[0]]] != 100:
             if res != 100:

@@ -295,7 +295,7 @@ def read_all(mypath, mypath_results):
             if selects_dependencies:
                 engine.execute("INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies))
             if selects_datasets:
-                engine.execute("INSERT IGNORE Alps.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
+                engine.execute("INSERT IGNORE INTO Alps.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
 	        # SELECT "FD", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'10'"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'11'");
 
 
