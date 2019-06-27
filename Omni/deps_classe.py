@@ -117,7 +117,9 @@ def read_dep(file_name): # Il caso stats è a parte
             print "both[0]: {}".format(both[0])
             print "both[1]: {}".format(both[1])
             lhs = [int(i) if i else '' for i in both[0].split(",")]# Lo split mi crea una lista. Il problema è che l'ordine dei suoi elementi così conta, ma in verità un lhs [1,2] è uguale ad un [2,1]
-            rhs = [int(i) if i else '' for i in both[1].split(",")]
+            rhs = [int(i) if i else '' for i in both[1].split(",")]# Dovrei aver risolto col sort appena sotto
+            lhs.sort()
+            rhs.sort()
             print "lhs: {}".format(lhs)
             print "rhs: {}".format(rhs)
             # Potrei gestire una lista di int e non di string, ma ormai ho strutturato tutta l'app ini questo modo e non avrei comuqnue particolari vantaggi

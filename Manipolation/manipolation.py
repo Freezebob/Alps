@@ -21,7 +21,7 @@ from sqlalchemy.sql import select
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 
 
-sys.path.append('/home/marco/github/Alps')
+sys.path.append('/home/marco/github/Alps_1')
 from Manipolation import gui
 #from Omni.deps_classe import *
 from Omni import deps_classe
@@ -101,8 +101,8 @@ def load_results():
     stats = {}
     ds_names = []
     final_dep_results = collections.defaultdict(dict)
-    sys.path.append('/home/marco/github/Alps/Omni')  # Devo capire bene questo problema con pickle
-    with open("/home/marco/github/Alps/Omni/objs.pkl", "r") as f:
+    sys.path.append('/home/marco/github/Alps_1/Omni')  # Devo capire bene questo problema con pickle
+    with open("/home/marco/github/Alps_1/Omni/objs.pkl", "r") as f:
         stats, ds_names, final_dep_results = pickle.load(f)
 
         # Aggiunta dopo aver standardizzato i nomim dei files
@@ -437,9 +437,9 @@ if __name__ == "__main__":
     # stats, ds_names, final_dep_results_copy = load_results()
 
 
-    # engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps')
+    # engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps_1')
     # conn = engine.connect()
-    # ris = engine.execute("SELECT name FROM Alps.Datasets")
+    # ris = engine.execute("SELECT name FROM Alps_1.Datasets")
     # ds_names = []
     # for i in ris:
     #     ds_names.append(i[0]) # Visto che ogni elemento di ris è una tuplla con dim > 1 anche se contiene un solo elemento
@@ -473,8 +473,8 @@ if __name__ == "__main__":
             n = 0
         ds_slides[ds] = split(n, 4)
     # es
-    # {'organizations_alpsv20.csv': [[0, 365], [365, 729], [729, 1093], [1093, 1457]],
-    #  'organizations_alpsv20Dedup.csv': [[0, 211], [211, 422], [422, 633], [633, 844]]}
+    # {'organizations_Alps_1v20.csv': [[0, 365], [365, 729], [729, 1093], [1093, 1457]],
+    #  'organizations_Alps_1v20Dedup.csv': [[0, 211], [211, 422], [422, 633], [633, 844]]}
     processes = []
     dict_process = {}
     l_d_p = [] #list_dict_process
@@ -484,10 +484,10 @@ if __name__ == "__main__":
             dict_process[ds] = ds_slides[ds][i]
         l_d_p.append(cp.deepcopy(dict_process))
         # es di l_d_p
-         # [{'organizations_alpsv20.csv': [0, 365], 'organizations_alpsv20Dedup.csv': [0, 211]},
-         #           {'organizations_alpsv20.csv': [365, 729], 'organizations_alpsv20Dedup.csv': [211, 422]},
-         #           {'organizations_alpsv20.csv': [729, 1093], 'organizations_alpsv20Dedup.csv': [422, 633]},
-         #           {'organizations_alpsv20.csv': [1093, 1457], 'organizations_alpsv20Dedup.csv': [633, 844]}]
+         # [{'organizations_Alps_1v20.csv': [0, 365], 'organizations_Alps_1v20Dedup.csv': [0, 211]},
+         #           {'organizations_Alps_1v20.csv': [365, 729], 'organizations_Alps_1v20Dedup.csv': [211, 422]},
+         #           {'organizations_Alps_1v20.csv': [729, 1093], 'organizations_Alps_1v20Dedup.csv': [422, 633]},
+         #           {'organizations_Alps_1v20.csv': [1093, 1457], 'organizations_Alps_1v20Dedup.csv': [633, 844]}]
         #print l_d_p[i]
     for i in l_d_p:
 #         print "slice per processo: {}".format(i)
@@ -520,7 +520,7 @@ if __name__ == "__main__":
                     sum_dict[key] = somma
             sorted_x = sorted(sum_dict.items(), key=operator.itemgetter(1))
 
-            # for key in deps_screm_nuovo["alpsv20dedup"]["alpsv20"]["fds"].keys():
+            # for key in deps_screm_nuovo["Alps_1v20dedup"]["Alps_1v20"]["fds"].keys():
             # Devo solo sistemare l'output. Non funziona se per una copia di ds non ci sono dipendenze esclusive (non nulle) da visualizzare
             for key in sorted_x:
                 print "Dependency: {}".format(key[0])

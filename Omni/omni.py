@@ -56,7 +56,7 @@ dtypes_dict = {'id': int,
  'city': str,
  'citycode': str}
 
-engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps?charset=utf8', encoding='utf-8') # , fast_executemany=True non funziona
+engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps_1?charset=utf8', encoding='utf-8') # , fast_executemany=True non funziona
 conn = engine.connect()
 
 def omni(ds_path, result_name):
@@ -176,7 +176,7 @@ def read_all(mypath, mypath_results):
 
     # COMMENTO MOMENTANEO
     onlyfiles = files_in_dir(mypath)
-    engine.execute("USE Alps")
+    engine.execute("USE Alps_1")
     for ds in onlyfiles:
         file_name = mypath + ds
         print file_name
@@ -185,7 +185,7 @@ def read_all(mypath, mypath_results):
         df.to_sql(ds, con=engine, if_exists="replace", dtype={'children': sqlalchemy.dialects.mysql.MEDIUMTEXT}, index=False, chunksize=2000)
         #values = '{}, "{}", {}, {}'.format(i, ds, "NULL", "NULL")
         values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
-        engine.execute("INSERT IGNORE INTO Alps.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
+        engine.execute("INSERT IGNORE INTO Alps_1.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
         engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
     # # df.to_sql('users', con=engine)
 
@@ -238,7 +238,7 @@ def read_all(mypath, mypath_results):
             #         print "Values dopo {}".format(values)
             # values = values[:-2]
             # if values:
-            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+            #     engine.execute("INSERT IGNORE INTO Alps_1.Hand_sides (`string`) VALUES {};".format(values))
 
 
             # Commento momentaneo
@@ -260,7 +260,7 @@ def read_all(mypath, mypath_results):
                 print "Values dopo {}".format(values)
             values = values[:-2]
             if values:
-                engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values))
+                engine.execute("INSERT IGNORE INTO Alps_1.Hand_sides (`string`) VALUES {};".format(values))
 
             # Devo ripetere il ciclo dep purtroppo. Vediamo più avanti se c'è un'alternativa
             selects_dependencies = ""
@@ -282,13 +282,13 @@ def read_all(mypath, mypath_results):
                 else:
                     tmp_rhs = "NULL"
                 selects_dependencies += """("{}",
-                                           (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"),
-                                           (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")), """.format(dep_type, tmp_lhs, tmp_rhs)
+                                           (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}"),
+                                           (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}")), """.format(dep_type, tmp_lhs, tmp_rhs)
 
-                selects_datasets += """((SELECT idDataset FROM Alps.Datasets WHERE `name` = "{}"),
-                                        (SELECT idDependencies FROM Alps.Dependencies WHERE `type` = "{}"
-                                            AND idLHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}")
-                                            AND idRHS = (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "{}"))
+                selects_datasets += """((SELECT idDataset FROM Alps_1.Datasets WHERE `name` = "{}"),
+                                        (SELECT idDependencies FROM Alps_1.Dependencies WHERE `type` = "{}"
+                                            AND idLHS = (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}")
+                                            AND idRHS = (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}"))
                                        ), """.format(ds_name, dep_type, tmp_lhs, tmp_rhs)
                 # print "Selects_dependencies dopo: {}".format(selects_dependencies)
                 # print "\n\n"
@@ -297,12 +297,12 @@ def read_all(mypath, mypath_results):
             selects_datasets = selects_datasets[:-2]
             print "Selects_datasets dopo {}".format(selects_datasets)
             # print "\n\n\n\n"
-            # print "INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies)
+            # print "INSERT IGNORE INTO Alps_1.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies)
             if selects_dependencies:
-                engine.execute("INSERT IGNORE INTO Alps.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies))
+                engine.execute("INSERT IGNORE INTO Alps_1.Dependencies (`type`, `idLHS`, `idRHS`) VALUES {};".format(selects_dependencies))
             if selects_datasets:
-                engine.execute("INSERT IGNORE Alps.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
-	        # SELECT "FD", (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'10'"), (SELECT idHand_sides FROM Alps.Hand_sides WHERE `string` = "'11'");
+                engine.execute("INSERT IGNORE Alps_1.Datasets_Dependencies (datasets_idDataset, dependencies_idDependencies) VALUES {};". format(selects_datasets))
+	        # SELECT "FD", (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "'10'"), (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "'11'");
 
 
 
@@ -332,11 +332,11 @@ def read_all(mypath, mypath_results):
             #         values += el
             #         print "Values dopo {}".format(values)
             # values = values[:-2]
-            # # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
+            # # print "INSERT IGNORE INTO Alps_1.Hand_sides (`string`) VALUES {};".format(values)
             # # print f
-            # # print "INSERT IGNORE INTO Alps.Hand_sides (`string`) VALUES {};".format(values)
+            # # print "INSERT IGNORE INTO Alps_1.Hand_sides (`string`) VALUES {};".format(values)
             # if values:
-            #     engine.execute("INSERT IGNORE INTO Alps.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
+            #     engine.execute("INSERT IGNORE INTO Alps_1.Hand_sides (`idHand_sides`, `string`) VALUES {};".format(values))
 
             # Commentato perché non uso più ds_name_dict
             # if ds_name_dict not in ds_names:
@@ -383,7 +383,7 @@ def read_all(mypath, mypath_results):
 
 
 def handle_deps(mypath, mypath_results):
-    # responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
+    responses_list = exec_omni(mypath) # Lo commento solo perché non voglio ricalcolare tutte le diepndenze
     # stats, ds_names, final_dep_results = read_all(mypath, mypath_results)
     resp = read_all(mypath, mypath_results)
     return resp
@@ -397,3 +397,4 @@ if __name__ == "__main__":
     resp = handle_deps(mypath, mypath_results)
     # with open("objs.pkl", "w") as f:
     #     pickle.dump([stats, ds_names_dict, final_dep_results], f)
+    print "ciao"
