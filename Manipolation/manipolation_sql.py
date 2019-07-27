@@ -335,12 +335,7 @@ def bing_bing_bong_new(a_list, ds, opened_csvs):
 # Il mio groupby
 # TODO: dovrei farne una versione sql
 def modified_bing_bing_bong_new(a_list, ds, opened_csvs):
-    print "Biiiiing"
     a_list = [1] + a_list
-    print "a_list: {}".format(a_list)
-    #     start = time.time()
-    asd = "ciao"
-    result = collections.defaultdict(lambda: collections.defaultdict(int))
     result_id_list = collections.defaultdict(lambda: collections.defaultdict(list))
 
     projection_df = opened_csvs[re.sub('[(){}<>]', '', ds)][[attributes[i] for i in a_list]]
@@ -348,10 +343,12 @@ def modified_bing_bing_bong_new(a_list, ds, opened_csvs):
         # result[str(row[1:-1])][row[-1]] += 1
         # creo un secondo dict con le stesse chiavi e tiene la lista degli id delle righe. Posso far senza di result.
         # Se conto gli id (row[0]) ottengo il count delle violazioni
-        result_id_list[str(row[1:-1])][str(row[-1])].append(row[0])
-    # for key in result.keys():
-    #     if len(result[key]) == 1:
-    #         result.pop(key, None)
+        key = ''
+        for el in row[1:-1]:
+            key += unicode(str(el), "utf-8") + ' £$ '
+        key = key[:-4]
+        result_id_list[key][unicode(str(row[-1]), "utf-8")].append(row[0])
+
     for key in result_id_list.keys():
         if len(result_id_list[key]) == 1:
             result_id_list.pop(key, None)
@@ -691,14 +688,15 @@ def process_function_sql(d_p, selected_options, deps_cleaned_dict):
                         tuple_list = []
 
                         # Istruzioni per gestire l'output di modified_bing_bing_bong
-                        print "a_list: {}".format(a_list)
-                        nested_list = [result.values()[i].values() for i in xrange(len(result))]
-                        flat_list = flatten_list(flatten_list(nested_list))
+                        # Col nuovo formato della tabella Violations non uso nemmeno queste due righe di codice. Apputno del 27/06/19
+                        # nested_list = [result.values()[i].values() for i in xrange(len(result))]
+                        # flat_list = flatten_list(flatten_list(nested_list))
 
                         # flat_list = flatten_list(flatten_list(result)) # Per gli altri bing_bing_bong (credo)
 
                         tmp_lhs = str(dep.lhs).replace('[', '').replace(']', '')
                         tmp_rhs = str(dep.rhs).replace('[', '').replace(']', '')
+                        #print "tmp_lhs: {}".format(tmp_lhs)
                         ds_id = engine_process.execute('SELECT idDataset FROM Alps_1.Datasets WHERE `name` = "{}"'.format(ds)).fetchone()[0]
                         # print """SELECT idDependencies FROM Alps_1.Dependencies WHERE `type` = "{}"
                         #                     AND idLHS = (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}")
@@ -707,11 +705,28 @@ def process_function_sql(d_p, selected_options, deps_cleaned_dict):
                                             AND idLHS = (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}")
                                             AND idRHS = (SELECT idHand_sides FROM Alps_1.Hand_sides WHERE `string` = "{}")""".format("FD", tmp_lhs, tmp_rhs)).fetchone()[0]
                         selects_violations = ''
-                        for val in flat_list:
-                            selects_violations += "({}, {}, {}), ".format(ds_id, dep_id, val)
+                        for i in xrange(len(result)):
+                            for key in result.values()[i].keys():
+                                for n_tuple in result.values()[i][key]:
+                                    # selects_violations += '({}, {}, {}, "{}", "{}"), '.format(ds_id, dep_id, n_tuple, result.keys()[i], key)
+                                    print result.keys()[i].replace('"', '\\"')
+                                    print key.replace('"', '\\"')
+
+                                    selects_violations += '({}, {}, {}, "{}", "{}"), '.format(ds_id, dep_id, n_tuple, result.keys()[i].replace('"', '\\"'), key.replace('"', '\\"'))
+                                    # print "lhs: {}".format(result.keys()[i])
+                                    # #         print "result.values()[i][key]: {}".format(result.values()[i][key])
+                                    # print "n-tuple: {}".format(n_tuple)
+                                    # print "[key]: {}\n".format(key)
+                            print "----"
+
+                        # Ciclo per la precendente tabella Violations
+                        # for val in flat_list:
+                        #     selects_violations += "({}, {}, {}), ".format(ds_id, dep_id, val)
+
                         selects_violations = selects_violations[:-2]
 
-                        engine_process.execute("INSERT IGNORE INTO Alps_1.Violations_prova (`datasets_id`, `dependencies_id`, `n_tuple`) VALUES {};".format(selects_violations))
+                        # engine_process.execute("INSERT IGNORE INTO Alps_1.Violations (`datasets_id`, `dependencies_id`, `n_tuple`) VALUES {};".format(selects_violations))
+                        engine_process.execute("INSERT IGNORE INTO Alps_1.Violations_prova (`datasets_id`, `dependencies_id`, `n_tuple`, `lhs_value`, `rhs_value`) VALUES {};".format(selects_violations))
 
 
                         # Vecchio output, ora voglio solo alcune cose da inserire nella tabella Violations:

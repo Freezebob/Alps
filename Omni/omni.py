@@ -56,7 +56,7 @@ dtypes_dict = {'id': int,
  'city': str,
  'citycode': str}
 
-engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps_1?charset=utf8', encoding='utf-8') # , fast_executemany=True non funziona
+engine = sqlalchemy.create_engine('mysql://root:rootpasswordgiven@localhost/Alps_1?charset=utf8') # , fast_executemany=True non funziona
 conn = engine.connect()
 
 def omni(ds_path, result_name):
