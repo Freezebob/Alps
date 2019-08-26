@@ -194,6 +194,7 @@ def read_all(mypath, mypath_results):
     attr_read = False
     # ds_names = []
     onlyfiles = files_in_dir(mypath_results)
+    id_hand_sides = 0
     for f in onlyfiles:
         #print f.split("_")[0]
         #ds_name = f.split("_")[0] # invece di usare per es. orcid_SPIDER_inds,uso solo orcid

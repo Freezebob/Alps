@@ -31,7 +31,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 import gui
-sys.path.append('/home/marco/github/Alps_1')
+sys.path.append('/home/marco/github/Alps')
 #from Omni.deps_classe import *
 import Omni.deps_classe
 
@@ -353,7 +353,6 @@ def modified_bing_bing_bong_new(a_list, ds, opened_csvs):
         if len(result_id_list[key]) == 1:
             result_id_list.pop(key, None)
     return result_id_list
-
 def bing_bing_bong_sql_no_string(a_list, ds, conn_process, org_ds):
     id_viol = [] # Ci salvo gli id delle tuple violate
     a_names = [attributes[i] for i in a_list]
@@ -444,7 +443,7 @@ def bing_bing_bong_sql_string(a_list, ds, engine_process):
             #         print type(i[attr])
             str_i = str(i[attr]) if isinstance((i[attr]), numbers.Number) else i[attr] # Per engine.execute cambia il modo in cui si accede ad i
             # str_i = str(i.attr) if isinstance(i.attr, numbers.Number) else i.attr # Per session.query
-            equals += attr + (" IS NULL" if i[attr] is None else (' = "' + str_i.replace('"', '\\"') + '"')) + " AND "
+            equals += attr + (" IS NULL" if i[attr] is None else (' = "' + str_i.replace('"', '\\"') + '"')) + " AND "  #Anche qui sarebbe meglio re.escape
         # equals = equals[:-5] # IDEM
         #     equals += attr + (" IS NULL" if i.attr is None else (' = "' + str_i.replace('"', '\\"') + '"')) + " AND "
         equals = equals[:-5]
@@ -515,7 +514,8 @@ def process_function(d_p, selected_options, exclusive_deps, opened_csvs):
                             # print "esamino {}".format(x)
                             # print stats[ds1]["Percentage of Nulls"][attributes[x]]
                             # print "-----"
-                            res = engine.execute("SELECT `Percentage of Nulls` FROM Alps_1.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+                            # res = engine.execute("SELECT `Percentage of Nulls` FROM Alps_1.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]  #attenzione!! penso. Devo controllare l'lhs, ma passo ancora l'rhs
+                            res = engine.execute("SELECT `Percentage of Nulls` FROM Alps_1.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[x])).fetchone()[0]
                             if res == 100:
                             # if stats[ds1]["Percentage of Nulls"][attributes[x]] == 100:
                                 new_i.lhs.remove(x)
@@ -623,7 +623,7 @@ def recreate_deps(deps_ids):
         #         print "db_id: {}".format(db_id)
         dep = engine.execute("SELECT * FROM Alps_1.Dependencies WHERE idDependencies = {}".format(db_id)).fetchone()
 
-        lhs = engine.execute("SELECT `string` FROM Alps_1.Hand_sides WHERE idHand_sides = {}".format(dep["idLHS"])).fetchone()[0]  # ottengo qualcosa diquesto tipo '10, 5, 4'
+        lhs = engine.execute("SELECT `string` FROM Alps_1.Hand_sides WHERE idHand_sides = {}".format(dep["idLHS"])).fetchone()[0]  # ottengo qualcosa di questo tipo '10, 5, 4'
         # print "lhs: {}".format(lhs)
         # print "split ', ': {}".format(lhs.split(", "))
         lhs = [int(i) if i != 'NULL' else '' for i in lhs.split(", ")]
@@ -665,6 +665,7 @@ def process_function_sql(d_p, selected_options, deps_cleaned_dict):
     org_ds = dict()
     org_ds['organizations_alpsv20.csv'] = Table('organizations_alpsv20.csv', meta, autoload=True, autoload_with=engine_process)
     org_ds['organizations_alpsv20Dedup.csv'] = Table('organizations_alpsv20Dedup.csv', meta, autoload=True, autoload_with=engine_process)
+    conta_cento = 0
 
     for ds in selected_options:
         if d_p[ds]:
@@ -709,24 +710,34 @@ def process_function_sql(d_p, selected_options, deps_cleaned_dict):
                             for key in result.values()[i].keys():
                                 for n_tuple in result.values()[i][key]:
                                     # selects_violations += '({}, {}, {}, "{}", "{}"), '.format(ds_id, dep_id, n_tuple, result.keys()[i], key)
-                                    print result.keys()[i].replace('"', '\\"')
-                                    print key.replace('"', '\\"')
+                                    # print result.keys()[i].replace('"', '\\"')
+                                    # print key.replace('"', '\\"')
+                                    conta_cento += 1
+                                    # selects_violations += '({}, {}, {}, "{}", "{}"), '.format(ds_id, dep_id, n_tuple, result.keys()[i].replace('"', '\\"'), key.replace('"', '\\"'))
+                                    selects_violations += '({}, {}, {}, "{}", "{}"), '.format(ds_id, dep_id, n_tuple, re.escape(result.keys()[i]), re.escape(key))
 
-                                    selects_violations += '({}, {}, {}, "{}", "{}"), '.format(ds_id, dep_id, n_tuple, result.keys()[i].replace('"', '\\"'), key.replace('"', '\\"'))
+                                    # selects_violations += '({}, {}, {}), '.format(ds_id, dep_id, n_tuple)
+                                    if conta_cento == 50:
+                                        conta_cento = 0
+                                        selects_violations = selects_violations[:-2]
+                                        engine_process.execute("INSERT IGNORE INTO Alps_1.Violations_prova_hs (`datasets_id`, `dependencies_id`, `n_tuple`, `lhs_value`, `rhs_value`) VALUES {};".format(selects_violations))
+                                        selects_violations = ''
                                     # print "lhs: {}".format(result.keys()[i])
                                     # #         print "result.values()[i][key]: {}".format(result.values()[i][key])
                                     # print "n-tuple: {}".format(n_tuple)
                                     # print "[key]: {}\n".format(key)
-                            print "----"
+                            # print "----"
 
                         # Ciclo per la precendente tabella Violations
                         # for val in flat_list:
                         #     selects_violations += "({}, {}, {}), ".format(ds_id, dep_id, val)
+                        if conta_cento != 0:
+                            selects_violations = selects_violations[:-2]
+                            # engine_process.execute("INSERT IGNORE INTO Alps_1.Violations (`datasets_id`, `dependencies_id`, `n_tuple`) VALUES {};".format(selects_violations))
+                            engine_process.execute("INSERT IGNORE INTO Alps_1.Violations_prova_hs (`datasets_id`, `dependencies_id`, `n_tuple`, `lhs_value`, `rhs_value`) VALUES {};".format(selects_violations))
+                            selects_violations = ''
+                            # engine_process.execute("INSERT IGNORE INTO Alps_1.Violations (`datasets_id`, `dependencies_id`, `n_tuple`) VALUES {};".format(selects_violations))
 
-                        selects_violations = selects_violations[:-2]
-
-                        # engine_process.execute("INSERT IGNORE INTO Alps_1.Violations (`datasets_id`, `dependencies_id`, `n_tuple`) VALUES {};".format(selects_violations))
-                        engine_process.execute("INSERT IGNORE INTO Alps_1.Violations_prova (`datasets_id`, `dependencies_id`, `n_tuple`, `lhs_value`, `rhs_value`) VALUES {};".format(selects_violations))
 
 
                         # Vecchio output, ora voglio solo alcune cose da inserire nella tabella Violations:
@@ -740,7 +751,7 @@ def process_function_sql(d_p, selected_options, deps_cleaned_dict):
                         # print "\n\n"
 
 # def insert_exclusive_deps(selected_options, stats):
-# Funzionante, ma l'ho scomposta per farla girare in multiprocessing
+# Funzionante, ma l'ho scomposta per farla girare in multiprocessing.
 def insert_exclusive_deps(selected_options):
 
     # ds1: source_ds
@@ -979,7 +990,9 @@ if __name__ == "__main__":
                     # print "esamino {}".format(x)
                     # print stats[ds1]["Percentage of Nulls"][attributes[x]]
                     # print "-----"
-                    res = engine.execute("SELECT `Percentage of Nulls` FROM Alps_1.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0]
+                    # res = engine.execute("SELECT `Percentage of Nulls` FROM Alps_1.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[i.rhs[0]])).fetchone()[0] #dovrei pulire l'lhs, ma sto usando l'rhs
+                    res = engine.execute("SELECT `Percentage of Nulls` FROM Alps_1.`stats_{}` WHERE `columnIdentifier` = '{}'".format(ds1.split("_")[1], attributes[x])).fetchone()[0]
+
                     # if stats[re.sub('[(){}<>]', '', ds1)]["Percentage of Nulls"][attributes[x]] == 100:
                     if res == 100:
                         # Le lhs possono contenere attributi che per ds1 sono nulli. Li tolgo dato che sono inutilil
