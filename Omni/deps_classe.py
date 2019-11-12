@@ -169,6 +169,8 @@ def read_uccs(file_name):
         elif results == True:
             #print UCC(line.rstrip("\n").split(","))
             # UCCs.append(UCC(line.rstrip("\n").split(",")))
-            UCCs.append(UCC([int(i) if i else '' for i in line.rstrip("\n").split(",")]))
+            hs = [int(i) if i else '' for i in line.rstrip("\n").split(",")]
+            hs.sort()
+            UCCs.append(UCC(hs))
             #print UCCs[0]
     return columns, UCCs

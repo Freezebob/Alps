@@ -167,9 +167,9 @@ def read_all(mypath, mypath_results):
     count_dict = collections.defaultdict(int)
     # engine era qui
     meta = MetaData()
-    Hand_sides = Table('Hand_sides', meta, autoload=True, autoload_with=engine)
-    Dependencies = Table('Dependencies', meta, autoload=True, autoload_with=engine)
-    Datasets = Table('Datasets', meta, autoload=True, autoload_with=engine)
+    # Hand_sides = Table('Hand_sides', meta, autoload=True, autoload_with=engine)
+    # Dependencies = Table('Dependencies', meta, autoload=True, autoload_with=engine)
+    # Datasets = Table('Datasets', meta, autoload=True, autoload_with=engine)
 
     # Inserisco i dataset. Per ora è fatto con l'ORM, poi lo ottimizzerò direttamente inn SQL
     # Dovrei già avercea nel notebook communque
@@ -186,7 +186,8 @@ def read_all(mypath, mypath_results):
         #values = '{}, "{}", {}, {}'.format(i, ds, "NULL", "NULL")
         values = '"{}", {}, {}'.format(ds, "NULL", "NULL")  # Uso split perché non voglio il .csv nel nome del file
         engine.execute("INSERT IGNORE INTO Alps_1.Datasets (`name`, `idStats`, `size`) VALUES ({});".format(values))
-        engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds))
+        #engine.execute('ALTER TABLE `{}` ADD PRIMARY KEY (`id`);'.format(ds)) # Per il dataset iris devo specificare un altra chiave. id non ce l'ha. In verità non saprei che chiave specificare.
+
     # # df.to_sql('users', con=engine)
 
     # final_dep_results = collections.defaultdict(dict)
@@ -199,6 +200,7 @@ def read_all(mypath, mypath_results):
         #print f.split("_")[0]
         #ds_name = f.split("_")[0] # invece di usare per es. orcid_SPIDER_inds,uso solo orcid
         ds_name = '_'.join(f.split("_")[0:2]) # ora i nomi non sono più orcid_SPIDER, ma organizations_orcid_SPIDER, quindi tagliare sul primo '_' non funziona più
+        # Attenzione costruire i nomi dei file in base  a dove si vuole tagliare.
         ds_name_dict = re.sub('[(){}<>]', '', ds_name) # Le parentesi non piacciono ai dict  # Ho aggiunto _dict perché lo uso solo per riemmpire il dizionario, che non userò più a breve. Lo tengo comunque per non inncasinare  il codice
         if "stats" not in f:
             print "ciao"
